@@ -1,0 +1,9 @@
+{
+  "name": "freelance-reminder",
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "nodemailer": "^6.9.3",
+    "node-fetch": "^3.4.1"
+  }
+}

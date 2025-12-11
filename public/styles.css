@@ -1,0 +1,78 @@
+:root {
+    --accent: #6ee7b7;
+    --muted: #9aa4b2;
+}
+
+body {
+    background: #071020;
+    color: #fff;
+    font-family: Inter, system-ui, Arial;
+    padding: 24px
+}
+
+.container {
+    max-width: 900px;
+    margin: 0 auto
+}
+
+h1,
+h2 {
+    margin: 8px 0
+}
+
+form label {
+    display: block;
+    margin: 10px 0
+}
+
+input,
+textarea,
+select {
+    display: block;
+    width: 100%;
+    padding: 8px;
+    border-radius: 6px;
+    border: 1px solid rgba(255, 255, 255, 0.06);
+    background: #08121a;
+    color: white
+}
+
+.buttons {
+    display: flex;
+    gap: 8px;
+    margin-top: 10px
+}
+
+button {
+    padding: 8px 12px;
+    border-radius: 8px;
+    border: 0;
+    background: var(--accent);
+    cursor: pointer;
+    color: #062018
+}
+
+#clientsList {
+    list-style: none;
+    padding: 0;
+    margin-top: 12px
+}
+
+.client-item {
+    padding: 12px;
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.03);
+    margin-bottom: 8px;
+    display: flex;
+    justify-content: space-between;
+    align-items: center
+}
+
+.small {
+    color: var(--muted);
+    font-size: 0.9rem
+}
+
+.small .muted {
+    color: var(--muted)
+}
