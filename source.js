@@ -639,7 +639,8 @@ async function sendEmail(client, reminderNumber) {
         amount: `Rs. ${client.amount.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         payment_type: client.paymentType === 'monthly' ? 'Monthly' : 'Per Project',
         reminder_number: reminderNumber,
-        reminder_day: client.reminderDay || 'N/A'
+        reminder_day: client.reminderDay || 'N/A',
+        client_notes: client.notes || '—'
     };
 
     try {
