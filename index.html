@@ -41,15 +41,77 @@
             padding: 20px;
         }
 
+        /* Login Screen Styles */
+        .login-container {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .login-box {
+            background: var(--bg-secondary);
+            border-radius: var(--radius);
+            padding: 40px;
+            max-width: 450px;
+            width: 100%;
+            box-shadow: var(--shadow-lg);
+            animation: slideUp 0.5s ease;
+            border: 2px solid var(--border-color);
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .login-header h1 {
+            font-size: 2rem;
+            background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            color: var(--text-muted);
+            font-size: 0.95rem;
+        }
+
+        .login-icon {
+            font-size: 3.5rem;
+            margin-bottom: 20px;
+            display: block;
+        }
+
+        /* Main App Styles */
         .container {
             max-width: 1400px;
             margin: 0 auto;
+            display: none;
+        }
+
+        .container.active {
+            display: block;
+            animation: fadeIn 0.5s ease;
         }
 
         header {
             text-align: center;
             margin-bottom: 40px;
             animation: fadeInDown 0.6s ease;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 20px;
+        }
+
+        .header-content {
+            flex: 1;
+            text-align: center;
         }
 
         h1 {
@@ -64,6 +126,47 @@
         .subtitle {
             color: var(--text-secondary);
             font-size: 1.1rem;
+        }
+
+        .user-info {
+            background: var(--bg-secondary);
+            padding: 15px 25px;
+            border-radius: var(--radius-sm);
+            border: 2px solid var(--border-color);
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .user-details {
+            text-align: left;
+        }
+
+        .user-name {
+            font-weight: 600;
+            color: var(--text-primary);
+            font-size: 1rem;
+        }
+
+        .user-id {
+            font-size: 0.85rem;
+            color: var(--text-muted);
+        }
+
+        .logout-btn {
+            background: var(--danger-color);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            font-weight: 600;
+            transition: var(--transition);
+        }
+
+        .logout-btn:hover {
+            background: var(--danger-hover);
+            transform: translateY(-2px);
         }
 
         .config-section {
@@ -116,6 +219,7 @@
         .form-group {
             display: flex;
             flex-direction: column;
+            margin-bottom: 20px;
         }
 
         label {
@@ -358,6 +462,27 @@
             opacity: 0.5;
         }
 
+        .password-toggle {
+            position: absolute;
+            right: 16px;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            color: var(--text-muted);
+            cursor: pointer;
+            font-size: 1.2rem;
+            transition: var(--transition);
+        }
+
+        .password-toggle:hover {
+            color: var(--text-primary);
+        }
+
+        .input-wrapper {
+            position: relative;
+        }
+
         @keyframes fadeIn {
             from { opacity: 0; }
             to { opacity: 1; }
@@ -405,14 +530,68 @@
                 width: 95%;
                 padding: 20px;
             }
+            header {
+                flex-direction: column;
+            }
+            .user-info {
+                width: 100%;
+            }
         }
     </style>
 </head>
 <body>
-    <div class="container">
+    <!-- Login Screen -->
+    <div id="loginScreen" class="login-container">
+        <div class="login-box">
+            <div class="login-header">
+                <span class="login-icon">🔐</span>
+                <h1>Freelancer Accounting</h1>
+                <p>Please login to continue</p>
+            </div>
+            <form id="loginForm">
+                <div class="form-group">
+                    <label>User ID</label>
+                    <input type="text" id="loginUserId" required placeholder="Enter your user ID" autocomplete="username">
+                </div>
+                <div class="form-group">
+                    <label>Name</label>
+                    <input type="text" id="loginName" required placeholder="Enter your name" autocomplete="name">
+                </div>
+                <div class="form-group">
+                    <label>Password</label>
+                    <div class="input-wrapper">
+                        <input type="password" id="loginPassword" required placeholder="Enter your password" autocomplete="current-password">
+                        <button type="button" class="password-toggle" onclick="togglePassword()">👁️</button>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
+                    🔓 Login
+                </button>
+            </form>
+            <div id="loginAlert" style="margin-top: 15px;"></div>
+        </div>
+    </div>
+
+    <!-- Main App -->
+    <div class="container" id="mainApp">
         <header>
-            <h1>💼 Freelancer Accounting</h1>
-            <p class="subtitle">Manage clients and automate payment reminders</p>
+            <div style="flex: 0;">
+                <div class="user-info">
+                    <div>
+                        <span style="font-size: 1.5rem;">👤</span>
+                    </div>
+                    <div class="user-details">
+                        <div class="user-name" id="displayName"></div>
+                        <div class="user-id" id="displayUserId"></div>
+                    </div>
+                    <button class="logout-btn" onclick="logout()">🚪 Logout</button>
+                </div>
+            </div>
+            <div class="header-content">
+                <h1>💼 Freelancer Accounting</h1>
+                <p class="subtitle">Manage clients and automate payment reminders</p>
+            </div>
+            <div style="flex: 0; width: 200px;"></div>
         </header>
 
         <div id="alertContainer"></div>
@@ -447,6 +626,7 @@
         </div>
     </div>
 
+    <!-- Client Modal -->
     <div id="clientModal" class="modal">
         <div class="modal-content">
             <div class="modal-header">
@@ -454,19 +634,19 @@
                 <button class="close-btn" onclick="closeModal()">✕</button>
             </div>
             <form id="clientForm">
-                <div class="form-group" style="margin-bottom: 15px;">
+                <div class="form-group">
                     <label>Client Name *</label>
                     <input type="text" id="clientName" required>
                 </div>
-                <div class="form-group" style="margin-bottom: 15px;">
+                <div class="form-group">
                     <label>Email Address *</label>
                     <input type="email" id="clientEmail" required>
                 </div>
-                <div class="form-group" style="margin-bottom: 15px;">
+                <div class="form-group">
                     <label>Phone Number</label>
                     <input type="tel" id="clientPhone">
                 </div>
-                <div class="form-group" style="margin-bottom: 15px;">
+                <div class="form-group">
                     <label>Payment Type *</label>
                     <select id="paymentType" required onchange="togglePaymentFields()">
                         <option value="">Select Payment Type</option>
@@ -474,17 +654,17 @@
                         <option value="project">Per Project</option>
                     </select>
                 </div>
-                <div class="form-group" style="margin-bottom: 15px;">
+                <div class="form-group">
                     <label>Amount (PKR) *</label>
                     <input type="number" id="clientAmount" step="0.01" required>
                 </div>
                 <div id="monthlyFields" style="display: none;">
-                    <div class="form-group" style="margin-bottom: 15px;">
+                    <div class="form-group">
                         <label>Reminder Day of Month (1-28) *</label>
                         <input type="number" id="reminderDay" min="1" max="28" placeholder="e.g., 5 for 5th of every month">
                     </div>
                 </div>
-                <div class="form-group" style="margin-bottom: 20px;">
+                <div class="form-group">
                     <label>Notes</label>
                     <textarea id="clientNotes" rows="3" style="resize: vertical;"></textarea>
                 </div>
@@ -500,25 +680,202 @@
 
     <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
     <script>
-        // Configuration using environment variables or fallback to defaults
+        // Secure Credentials
+        const SECURE_CREDENTIALS = {
+            userId: 'hammadahmed',
+            name: 'Hammad Ahmed',
+            password: 'hammad2004ahmed'
+        };
+
+        // Configuration
         const CONFIG = {
             firebase: {
-                apiKey: window.FIREBASE_API_KEY || "AIzaSyB-7NaRb8feupfLnpBu0_DB5ilnTrUZ-T4",
-                databaseURL: window.FIREBASE_DB_URL || "https://client-app-406fb-default-rtdb.firebaseio.com"
+                apiKey: "AIzaSyB-7NaRb8feupfLnpBu0_DB5ilnTrUZ-T4",
+                databaseURL: "https://client-app-406fb-default-rtdb.firebaseio.com"
             },
             emailjs: {
-                serviceId: window.EMAILJS_SERVICE_ID || "clients-payment-app",
-                templateId: window.EMAILJS_TEMPLATE_ID || "template_4ef3ula",
-                publicKey: window.EMAILJS_PUBLIC_KEY || "dlTAzaXJt9czMLHsa"
+                serviceId: "clients-payment-app",
+                templateId: "template_4ef3ula",
+                publicKey: "dlTAzaXJt9czMLHsa"
             }
         };
 
         let editingClientId = null;
         let checkInterval;
+        let inactivityTimer;
+        let lastActivityTime = Date.now();
 
         // Initialize EmailJS
         emailjs.init(CONFIG.emailjs.publicKey);
 
+        // Check if user is logged in
+        function checkAuth() {
+            const session = sessionStorage.getItem('userSession');
+            if (!session) {
+                return false;
+            }
+
+            try {
+                const sessionData = JSON.parse(session);
+                const currentTime = Date.now();
+                
+                // Check if session is still valid (not expired)
+                if (currentTime - sessionData.loginTime > 24 * 60 * 60 * 1000) {
+                    logout();
+                    return false;
+                }
+
+                return true;
+            } catch (error) {
+                console.error('Auth check error:', error);
+                return false;
+            }
+        }
+
+        // Initialize auth on page load
+        function initAuth() {
+            const session = sessionStorage.getItem('userSession');
+            if (session) {
+                try {
+                    const sessionData = JSON.parse(session);
+                    showMainApp(sessionData);
+                } catch (error) {
+                    showLoginScreen();
+                }
+            } else {
+                showLoginScreen();
+            }
+        }
+
+        // Login Form Handler
+        function handleLogin(e) {
+            e.preventDefault();
+            
+            const userId = document.getElementById('loginUserId').value.trim();
+            const name = document.getElementById('loginName').value.trim();
+            const password = document.getElementById('loginPassword').value;
+
+            if (userId === SECURE_CREDENTIALS.userId && 
+                name === SECURE_CREDENTIALS.name && 
+                password === SECURE_CREDENTIALS.password) {
+                
+                const sessionData = {
+                    userId: userId,
+                    name: name,
+                    loginTime: Date.now()
+                };
+                
+                sessionStorage.setItem('userSession', JSON.stringify(sessionData));
+                showLoginAlert('Login successful!', 'success');
+                
+                setTimeout(() => {
+                    showMainApp(sessionData);
+                }, 500);
+            } else {
+                showLoginAlert('Invalid credentials. Please try again.', 'error');
+            }
+        }
+        
+        document.getElementById('loginForm').addEventListener('submit', handleLogin);
+
+        function showLoginScreen() {
+            document.getElementById('loginScreen').style.display = 'flex';
+            document.getElementById('mainApp').classList.remove('active');
+            stopInactivityMonitor();
+        }
+
+        function showMainApp(sessionData) {
+            document.getElementById('loginScreen').style.display = 'none';
+            document.getElementById('mainApp').classList.add('active');
+            document.getElementById('displayName').textContent = sessionData.name;
+            document.getElementById('displayUserId').textContent = sessionData.userId;
+            
+            loadClients();
+            startReminderCheck();
+            startInactivityMonitor();
+        }
+
+        function logout() {
+            sessionStorage.removeItem('userSession');
+            document.getElementById('loginForm').reset();
+            showLoginScreen();
+            showAlert('Logged out successfully', 'success');
+        }
+
+        function togglePassword() {
+            const input = document.getElementById('loginPassword');
+            const btn = event.target;
+            if (input.type === 'password') {
+                input.type = 'text';
+                btn.textContent = '🙈';
+            } else {
+                input.type = 'password';
+                btn.textContent = '👁️';
+            }
+        }
+
+        // Inactivity Monitor (2 minutes = 120000ms)
+        function startInactivityMonitor() {
+            lastActivityTime = Date.now();
+            
+            // Reset activity timer on any user interaction
+            const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+            events.forEach(event => {
+                document.addEventListener(event, resetInactivityTimer);
+            });
+
+            // Check for screen visibility changes
+            document.addEventListener('visibilitychange', handleVisibilityChange);
+
+            // Check inactivity every 10 seconds
+            inactivityTimer = setInterval(() => {
+                const inactiveTime = Date.now() - lastActivityTime;
+                if (inactiveTime > 120000) { // 2 minutes
+                    logout();
+                    showAlert('Session expired due to inactivity', 'warning');
+                }
+            }, 10000);
+        }
+
+        function stopInactivityMonitor() {
+            if (inactivityTimer) {
+                clearInterval(inactivityTimer);
+            }
+            const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
+            events.forEach(event => {
+                document.removeEventListener(event, resetInactivityTimer);
+            });
+            document.removeEventListener('visibilitychange', handleVisibilityChange);
+        }
+
+        function resetInactivityTimer() {
+            lastActivityTime = Date.now();
+        }
+
+        let hiddenTime = 0;
+        function handleVisibilityChange() {
+            if (document.hidden) {
+                hiddenTime = Date.now();
+            } else {
+                if (hiddenTime > 0) {
+                    const timeHidden = Date.now() - hiddenTime;
+                    if (timeHidden > 120000) { // 2 minutes
+                        logout();
+                        showAlert('Session expired due to screen being off', 'warning');
+                    }
+                }
+            }
+        }
+
+        function showLoginAlert(message, type) {
+            const container = document.getElementById('loginAlert');
+            container.innerHTML = `<div class="alert alert-${type}">${message}</div>`;
+            setTimeout(() => {
+                container.innerHTML = '';
+            }, 4000);
+        }
+
+        // Client Management Functions
         function togglePaymentFields() {
             const type = document.getElementById('paymentType').value;
             document.getElementById('monthlyFields').style.display = 
@@ -526,6 +883,8 @@
         }
 
         function openModal(clientId = null) {
+            if (!checkAuth()) return;
+            
             editingClientId = clientId;
             const modal = document.getElementById('clientModal');
             const form = document.getElementById('clientForm');
@@ -573,6 +932,8 @@
         document.getElementById('clientForm').addEventListener('submit', async (e) => {
             e.preventDefault();
 
+            if (!checkAuth()) return;
+
             const clientData = {
                 name: document.getElementById('clientName').value,
                 email: document.getElementById('clientEmail').value,
@@ -611,6 +972,8 @@
         });
 
         async function loadClients() {
+            if (!checkAuth()) return;
+
             try {
                 const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
                 const clients = await response.json();
@@ -693,6 +1056,7 @@
         }
 
         async function deleteClient(id) {
+            if (!checkAuth()) return;
             if (!confirm('Are you sure you want to delete this client?')) return;
 
             try {
@@ -705,6 +1069,8 @@
         }
 
         async function sendManualReminder(clientId) {
+            if (!checkAuth()) return;
+
             try {
                 const response = await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`);
                 const client = await response.json();
@@ -742,6 +1108,8 @@
         }
 
         async function checkReminders() {
+            if (!checkAuth()) return;
+
             try {
                 const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
                 const clients = await response.json();
@@ -815,8 +1183,15 @@
             }, 5000);
         }
 
-        loadClients();
-        startReminderCheck();
+        // Handle page unload (close tab/browser)
+        window.addEventListener('beforeunload', () => {
+            // Session will be cleared automatically since we use sessionStorage
+        });
+
+        // Initialize app
+        document.addEventListener('DOMContentLoaded', () => {
+            initAuth();
+        });
     </script>
 </body>
 </html>
