@@ -53,6 +53,7 @@ body {
     box-shadow: var(--shadow-lg);
     animation: slideUp 0.5s ease;
     border: 2px solid var(--border-color);
+    position: relative; /* Add this */
 }
 
 .login-header {
@@ -540,26 +541,42 @@ textarea:focus {
     color: var(--primary-color);
 }
 
+/* Password toggle button - Updated */
 .password-toggle {
     position: absolute;
-    right: 16px;
-    top: 50%;
-    transform: translateY(-50%);
+    right: 12px; /* Adjusted from 16px */
+    top: 1px; /* Position it properly from top of form-group */
+    transform: translateY(0); /* Remove the translateY since we're using top */
     background: none;
     border: none;
     color: var(--text-muted);
     cursor: pointer;
     font-size: 1.2rem;
     transition: var(--transition);
+    width: 40px; /* Fixed width */
+    height: 40px; /* Fixed height */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 2; /* Ensure it's above the input */
 }
 
 .password-toggle:hover {
     color: var(--text-primary);
+    background: rgba(255, 255, 255, 0.05);
+    border-radius: 50%;
 }
 
 .input-wrapper {
     position: relative;
+    width: 100%; /* Ensure full width */
 }
+
+/* Adjust the eye icon size */
+.password-toggle i {
+    font-size: 1.1rem;
+}
+
 
 .access-restricted {
     text-align: center;
@@ -642,5 +659,57 @@ textarea:focus {
     .client-info-item {
         flex-direction: column;
         gap: 5px;
+    }
+}
+
+
+
+/* Mobile responsiveness for login */
+@media (max-width: 768px) {
+    .login-box {
+        padding: 30px 25px;
+        margin: 0 15px;
+    }
+    
+    .login-header h1 {
+        font-size: 1.8rem;
+    }
+    
+    input, select, textarea {
+        padding: 14px 16px;
+        padding-right: 50px; /* Keep right padding for mobile */
+        font-size: 16px; /* Prevents zoom on iOS */
+    }
+    
+    .password-toggle {
+        right: 10px;
+        top: 40px; /* Adjusted for mobile */
+        width: 36px;
+        height: 36px;
+    }
+    
+    .btn {
+        padding: 14px 24px; /* Slightly larger for mobile */
+    }
+}
+
+@media (max-width: 480px) {
+    .login-box {
+        padding: 25px 20px;
+    }
+    
+    .login-header h1 {
+        font-size: 1.6rem;
+    }
+    
+    input, select, textarea {
+        padding: 12px 14px;
+    }
+    
+    .password-toggle {
+        right: 3px;
+        top: 5px;
+        width: 34px;
+        height: 34px;
     }
 }
