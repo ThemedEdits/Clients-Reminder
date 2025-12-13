@@ -436,7 +436,7 @@ async function loadClients() {
                         <div class="client-info">
                             <div class="client-info-item">
                                 <i class="fas fa-envelope"></i>
-                                <div><strong>Email:</strong> ${client.email}</div>
+                                <div ><strong>Email:</strong> ${client.email}</div>
                             </div>
                             ${client.phone ? `
                                 <div class="client-info-item">
