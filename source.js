@@ -661,45 +661,52 @@ async function checkReminders() {
     try {
         const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
         const clients = await response.json();
-
         if (!clients) return;
 
         const today = new Date();
-        const currentDay = today.getDate();
-        const todayStr = today.toISOString().split('T')[0];
+        today.setHours(0, 0, 0, 0);
 
         for (const [id, client] of Object.entries(clients)) {
             if (client.paymentType !== 'monthly') continue;
 
-            const lastSent = client.lastReminderSent ? new Date(client.lastReminderSent) : null;
-            const lastSentStr = lastSent ? lastSent.toISOString().split('T')[0] : null;
-
-            if (lastSentStr === todayStr) continue;
-
             const reminderCount = client.reminderCount || 0;
+            if (reminderCount >= 3) continue;
 
-            const shouldSend =
-                (currentDay === client.reminderDay && reminderCount === 0) ||
-                (currentDay === client.reminderDay + 2 && reminderCount === 1) ||
-                (currentDay === client.reminderDay + 4 && reminderCount === 2);
+            const baseDate = new Date(today.getFullYear(), today.getMonth(), client.reminderDay);
+            const reminderDates = [
+                baseDate,
+                new Date(baseDate.getTime() + 2 * 86400000),
+                new Date(baseDate.getTime() + 4 * 86400000)
+            ];
 
-            if (shouldSend) {
-                const newCount = reminderCount + 1;
-                await sendEmail(client, newCount);
+            // Fix month overflow
+            reminderDates.forEach(d => {
+                const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
+                if (d.getDate() > lastDay) d.setDate(lastDay);
+                d.setHours(0, 0, 0, 0);
+            });
+
+            const todayStr = today.toISOString().split('T')[0];
+            const targetDate = reminderDates[reminderCount];
+            const targetStr = targetDate.toISOString().split('T')[0];
+
+            if (todayStr === targetStr) {
+                await sendEmail(client, reminderCount + 1);
 
                 await fetch(`${CONFIG.firebase.databaseURL}/clients/${id}.json`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify({
-                        lastReminderSent: todayStr,
-                        reminderCount: newCount >= 3 ? 0 : newCount
+                        reminderCount: reminderCount + 1,
+                        lastReminderSent: todayStr
                     })
                 });
 
-                console.log(`Auto-reminder sent to ${client.name} (${newCount}/3)`);
+                console.log(`Reminder ${reminderCount + 1} sent to ${client.name}`);
             }
 
-            if (currentDay > client.reminderDay + 4 && reminderCount > 0) {
+            // Reset after cycle
+            if (today > reminderDates[2]) {
                 await fetch(`${CONFIG.firebase.databaseURL}/clients/${id}.json`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
@@ -708,9 +715,10 @@ async function checkReminders() {
             }
         }
     } catch (error) {
-        console.error('Error checking reminders:', error);
+        console.error('Reminder check error:', error);
     }
 }
+
 
 function startReminderCheck() {
     if (checkInterval) clearInterval(checkInterval);
