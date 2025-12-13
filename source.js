@@ -187,13 +187,18 @@ function generateClientCredentials(email) {
 
 // Update client credentials in form
 function updateClientCredentials() {
-    const email = document.getElementById('clientEmail').value;
-    if (email) {
+    const email = document.getElementById('clientEmail').value.trim();
+    const userIdInput = document.getElementById('clientUserId');
+    const passwordInput = document.getElementById('clientPassword');
+
+    // Only auto-generate ONCE (when fields are empty)
+    if (email && !userIdInput.value && !passwordInput.value) {
         const credentials = generateClientCredentials(email);
-        document.getElementById('clientUserId').value = credentials.userId;
-        document.getElementById('clientPassword').value = credentials.password;
+        userIdInput.value = credentials.userId;
+        passwordInput.value = credentials.password;
     }
 }
+
 
 // Inactivity Monitor (2 minutes = 120000ms)
 function startInactivityMonitor() {
