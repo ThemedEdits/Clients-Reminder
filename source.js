@@ -100,31 +100,57 @@ function handleLogin(e) {
             showMainApp(sessionData);
         }, 500);
     }
-    // Check if client
-    else if (CLIENT_CREDENTIALS[userId] &&
-        name === CLIENT_CREDENTIALS[userId].name &&
-        password === CLIENT_CREDENTIALS[userId].password) {
+    else {
+    authenticateClientFromFirebase(userId, name, password);
+}
+
+}
+
+async function authenticateClientFromFirebase(userId, name, password) {
+    try {
+        const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
+        const clients = await response.json();
+
+        if (!clients) {
+            showLoginAlert('No clients found.', 'error');
+            return;
+        }
+
+        const client = Object.values(clients).find(c =>
+            c.clientCredentials &&
+            c.clientCredentials.userId === userId &&
+            c.clientCredentials.password === password &&
+            c.name === name
+        );
+
+        if (!client) {
+            showLoginAlert('Invalid credentials. Please try again.', 'error');
+            return;
+        }
 
         const sessionData = {
             userId: userId,
-            name: name,
+            name: client.name,
             role: 'client',
-            clientEmail: CLIENT_CREDENTIALS[userId].email,
+            clientEmail: client.email,
             loginTime: Date.now()
         };
 
         sessionStorage.setItem('userSession', JSON.stringify(sessionData));
         currentUser = sessionData;
+
         showLoginAlert('Login successful!', 'success');
 
         setTimeout(() => {
             showMainApp(sessionData);
         }, 500);
-    }
-    else {
-        showLoginAlert('Invalid credentials. Please try again.', 'error');
+
+    } catch (error) {
+        console.error(error);
+        showLoginAlert('Login error. Please try again later.', 'error');
     }
 }
+
 
 document.getElementById('loginForm').addEventListener('submit', handleLogin);
 
