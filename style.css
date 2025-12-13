@@ -35,6 +35,24 @@ body {
     padding: 20px;
 }
 
+/* Chrome, Edge, Brave, Opera */
+input:-webkit-autofill,
+input:-webkit-autofill:hover,
+input:-webkit-autofill:focus,
+textarea:-webkit-autofill,
+textarea:-webkit-autofill:hover,
+textarea:-webkit-autofill:focus,
+select:-webkit-autofill {
+    -webkit-box-shadow: 0 0 0 1000px var(--bg-primary) inset !important;
+    -webkit-text-fill-color: var(--text-primary) !important;
+    caret-color: var(--text-primary);
+    border-radius: var(--radius);
+    transition: background-color 9999s ease-in-out 0s;
+}
+
+
+
+
 /* Login Screen Styles */
 .login-container {
     display: flex;
@@ -281,6 +299,7 @@ input,
 select,
 textarea {
     padding: 12px 16px;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
     border: 2px solid var(--border-color);
     border-radius: var(--radius-sm);
     background: var(--bg-primary);
@@ -294,7 +313,6 @@ select:focus,
 textarea:focus {
     outline: none;
     border-color: var(--primary-color);
-    box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.1);
 }
 
 .btn {
@@ -410,6 +428,22 @@ textarea:focus {
     margin-top: 20px;
 }
 
+.client-notes {
+    color: var(--text-secondary);
+}
+
+.notes-pre {
+    margin: 8px 0 0;
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    font-size: 0.9rem;
+    line-height: 1.6;
+    white-space: pre-wrap;
+    /* keep new lines */
+    word-break: break-word;
+    color: var(--text-primary);
+}
+
+
 .client-card {
     background: var(--bg-secondary);
     border-radius: var(--radius);
@@ -418,6 +452,10 @@ textarea:focus {
     transition: var(--transition);
     border: 2px solid var(--primary-color);
     animation: fadeIn 0.5s ease;
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    /* important when cards are in a grid */
 }
 
 .client-card:hover {
@@ -490,7 +528,29 @@ textarea:focus {
     margin-top: 15px;
     padding-top: 15px;
     border-top: 1px solid var(--border-color);
+    margin-top: auto;
+
 }
+
+textarea::-webkit-scrollbar {
+    width: 8px;
+}
+
+textarea::-webkit-scrollbar-track {
+    background: var(--bg-primary);
+    border-radius: 10px;
+}
+
+textarea::-webkit-scrollbar-thumb {
+    background-color: var(--border-color);
+    border-radius: 10px;
+    border: 2px solid var(--bg-primary);
+}
+
+textarea::-webkit-scrollbar-thumb:hover {
+    background-color: var(--primary-hover);
+}
+
 
 .btn-small {
     padding: 8px 16px;

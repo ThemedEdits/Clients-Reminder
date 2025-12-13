@@ -462,7 +462,11 @@ async function loadClients() {
                                 <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
                                     <div class="client-info-item">
                                         <i class="fas fa-sticky-note"></i>
-                                        <div><strong>Notes:</strong> ${client.notes}</div>
+                                        <div class="client-notes">
+  <strong>Notes:</strong>
+  <pre class="notes-pre">${client.notes || '—'}</pre>
+</div>
+
                                     </div>
                                 </div>
                             ` : ''}
