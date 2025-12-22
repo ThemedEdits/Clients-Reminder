@@ -544,7 +544,7 @@ const refreshedClients = await refreshedResponse.json();
                                 </div>
                             ` : ''}
                         </div>
-                        <div class="client-actions">
+                        <div class="client-actions" style="flex-wrap: wrap;">
                             <button class="btn btn-success btn-small" onclick="sendManualReminder('${id}')">
                                 <i class="fas fa-envelope"></i> Send Email
                             </button>
