@@ -383,7 +383,8 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
             ? `${CONFIG.firebase.databaseURL}/clients/${editingClientId}.json`
             : `${CONFIG.firebase.databaseURL}/clients.json`;
 
-        const method = editingClientId ? 'PUT' : 'POST';
+        const method = editingClientId ? 'PATCH' : 'POST';
+
 
         const response = await fetch(url, {
             method: method,
@@ -420,12 +421,37 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
     }
 });
 
+async function resetMonthlyIfNeeded(client, clientId) {
+    if (client.paymentType !== 'monthly') return;
+
+    const currentCycle = getBillingCycle(client.reminderDay);
+
+    if (client.lastPaidCycle && client.lastPaidCycle !== currentCycle) {
+        await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                totalPaid: 0,
+                status: 'due'
+            })
+        });
+    }
+}
+
+
+
 async function loadClients() {
     if (!checkAuth() || currentUser.role !== 'admin') return;
 
     try {
         const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
         const clients = await response.json();
+        for (const [id, client] of Object.entries(clients)) {
+    await resetMonthlyIfNeeded(client, id);
+}
+const refreshedResponse = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
+const refreshedClients = await refreshedResponse.json();
+
 
         const container = document.getElementById('clientsContainer');
 
@@ -453,7 +479,8 @@ async function loadClients() {
             }
         });
 
-        container.innerHTML = Object.entries(clients).map(([id, client]) => `
+        container.innerHTML = Object.entries(refreshedClients).map(([id, client]) => `
+        
                     <div class="client-card">
                         <div class="client-header">
                             <div class="client-name">
@@ -477,7 +504,22 @@ async function loadClients() {
                             ` : ''}
                             <div class="client-info-item">
                                 <i class="fas fa-money-bill"></i>
-                                <div><strong>Amount:</strong> Rs. ${client.amount.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+                                ${(() => {
+    const paid = client.totalPaid || 0;
+    const remaining = client.amount - paid;
+    const cls = remaining <= 0 ? 'amount-paid' : 'amount-due';
+    const label = remaining <= 0 ? 'Received' : 'Receivable';
+
+    return `
+        <div>
+            <strong>Total:</strong> Rs. ${client.amount.toLocaleString('en-PK')}
+        </div>
+        <div class="${cls}">
+            <strong>${label}:</strong> Rs. ${Math.max(remaining, 0).toLocaleString('en-PK')}
+        </div>
+    `;
+})()}
+
                             </div>
                             ${client.paymentType === 'monthly' ? `
                                 <div class="client-info-item">
@@ -506,6 +548,13 @@ async function loadClients() {
                             <button class="btn btn-success btn-small" onclick="sendManualReminder('${id}')">
                                 <i class="fas fa-envelope"></i> Send Email
                             </button>
+                            <button 
+    class="btn btn-success btn-small"
+    ${client.amount - (client.totalPaid || 0) <= 0 ? 'disabled' : ''}
+    onclick="openPaymentModal('${id}', ${client.amount - (client.totalPaid || 0)})">
+
+        <i class="fas fa-check-circle"></i> Mark Paid
+    </button>
                             <button class="btn btn-primary btn-small" onclick="openModal('${id}')">
                                 <i class="fas fa-edit"></i> Edit
                             </button>
@@ -516,7 +565,8 @@ async function loadClients() {
                     </div>
                 `).join('');
 
-        updateStats(clients);
+        updateStats(refreshedClients);
+
     } catch (error) {
         showAlert('Error loading clients', 'error');
     }
@@ -633,7 +683,11 @@ function updateStats(clients) {
     const clientsArray = Object.values(clients);
     const monthlyClients = clientsArray.filter(c => c.paymentType === 'monthly');
     const projectClients = clientsArray.filter(c => c.paymentType === 'project');
-    const monthlyRevenue = monthlyClients.reduce((sum, c) => sum + c.amount, 0);
+    const monthlyRevenue = monthlyClients.reduce(
+    (sum, c) => sum + Math.min(c.amount, c.totalPaid || 0),
+    0
+);
+
 
     document.getElementById('totalClients').textContent = clientsArray.length;
     document.getElementById('monthlyClients').textContent = monthlyClients.length;
@@ -794,4 +848,91 @@ document.addEventListener('DOMContentLoaded', () => {
 
     // Auto-generate credentials when email is entered in client form
     document.getElementById('clientEmail')?.addEventListener('input', updateClientCredentials);
+});
+
+
+
+
+function getBillingCycle(reminderDay) {
+    const now = new Date();
+    let month = now.getMonth();
+    let year = now.getFullYear();
+
+    if (now.getDate() < reminderDay) {
+        month--;
+        if (month < 0) {
+            month = 11;
+            year--;
+        }
+    }
+
+    return `${year}-${month + 1}`; // example: "2025-9"
+}
+
+
+
+function openPaymentModal(clientId, amount) {
+    document.getElementById('paymentClientId').value = clientId;
+    document.getElementById('paymentAmount').value = amount;
+    document.getElementById('paymentModal').classList.add('active');
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentModal').classList.remove('active');
+    document.getElementById('paymentForm').reset();
+}
+
+document.getElementById('paymentForm').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const clientId = document.getElementById('paymentClientId').value;
+    const amount = parseFloat(document.getElementById('paymentAmount').value);
+    const mode = document.getElementById('paymentMode').value;
+    const note = document.getElementById('paymentNote').value;
+
+    const clientRes = await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`);
+    const client = await clientRes.json();
+
+    let cycle = null;
+    if (client.paymentType === 'monthly') {
+        cycle = getBillingCycle(client.reminderDay);
+    }
+
+    const paymentRecord = {
+        amount,
+        note,
+        date: new Date().toISOString(),
+        mode,
+        cycle
+    };
+
+    await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}/payments.json`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(paymentRecord)
+    });
+
+    // Update paid status for monthly full payment
+    const newTotalPaid = (client.totalPaid || 0) + amount;
+const remaining = client.amount - newTotalPaid;
+
+const updateData = {
+    totalPaid: newTotalPaid,
+    status: remaining <= 0 ? 'paid' : 'due'
+};
+
+if (client.paymentType === 'monthly') {
+    updateData.lastPaidCycle = cycle;
+}
+
+await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`, {
+    method: 'PATCH',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(updateData)
+});
+
+
+    closePaymentModal();
+    loadClients();
+    showAlert('Payment recorded successfully!', 'success');
 });

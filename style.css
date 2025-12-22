@@ -524,12 +524,12 @@ textarea:focus {
 
 .client-actions {
     display: flex;
+    flex-wrap: wrap;          /* ✅ allows next line */
     gap: 10px;
     margin-top: 15px;
     padding-top: 15px;
     border-top: 1px solid var(--border-color);
     margin-top: auto;
-
 }
 
 textarea::-webkit-scrollbar {
@@ -837,4 +837,25 @@ textarea::-webkit-scrollbar-thumb:hover {
         width: 34px;
         height: 34px;
     }
+}
+
+
+
+
+
+/* MAKRED AS READ */
+
+.amount-paid {
+    color: var(--success-color);
+    font-weight: 700;
+}
+
+.amount-due {
+    color: var(--danger-color);
+    font-weight: 700;
+}
+
+.payment-status {
+    margin-top: 6px;
+    font-size: 0.95rem;
 }
