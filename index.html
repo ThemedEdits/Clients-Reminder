@@ -1,284 +1,362 @@
 <!DOCTYPE html>
 <html lang="en">
-
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Themed Edits - Digital Account</title>
     <link rel="stylesheet" href="style.css">
-
+    
     <!-- Meta Tags for SEO and Sharing -->
     <meta name="description" content="Professional Digital Account and client management system created by Themed Edits">
     <meta name="keywords" content="freelancer, accounting, client management, payment reminders">
     <meta name="author" content="Themed Edits - Digital Account">
-
+    
     <!-- Open Graph / Facebook -->
     <meta property="og:type" content="website">
     <meta property="og:title" content="Themed Edits - Digital Account">
     <meta property="og:description" content="Professional Digital Account and client management system created by Themed Edits">
     <meta property="og:image" content="https://clients-reminder.vercel.app/sharing.webp">
-
+    
     <!-- Twitter -->
     <meta name="twitter:card" content="summary_large_image">
     <meta name="twitter:title" content="Digital Account">
     <meta name="twitter:description" content="Professional Digital Account and client management system created by Themed Edits">
     <meta name="twitter:image" content="https://clients-reminder.vercel.app/sharing.webp">
-
+    
     <!-- Favicon -->
-    <link rel="icon" type="image/x-icon"
-        href="TE-main.png">
-    <link rel="apple-touch-icon"
-        href="https://cdn.jsdelivr.net/npm/@fortawesome/fontawesome-free@6.0.0/svgs/solid/file-invoice-dollar.svg">
-
+    <link rel="icon" type="image/x-icon" href="TE-main.png">
+    
     <!-- Font Awesome -->
     <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
-
+    
+    <!-- EmailJS -->
+    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
 </head>
-
 <body>
     <!-- Login Screen -->
-    <div id="loginScreen" class="login-container">
-        <div class="login-box">
-            <div class="login-header">
-                <i class="fas fa-lock login-icon"></i> 
-                <h1> Themed Edits - Digital Account</h1>
-                <p>Please login to continue</p>
-            </div>
-            <form id="loginForm">
-                <div class="form-group">
-                    <label><i class="fas fa-user"></i> User ID</label>
-                    <input type="text" id="loginUserId" required placeholder="Enter your user ID"
-                        autocomplete="username">
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-user-circle"></i> Name</label>
-                    <input type="text" id="loginName" required placeholder="Enter your name" autocomplete="name">
-                </div>
-                <!-- In the login form -->
-                <div class="form-group">
-                    <label><i class="fas fa-key"></i> Password</label>
-                    <div class="input-wrapper">
-                        <input type="password" id="loginPassword" required placeholder="Enter your password"
-                            autocomplete="current-password">
-                        <button type="button" class="password-toggle" onclick="togglePassword()">
-                            <i class="fas fa-eye"></i>
-                        </button>
+    <div id="loginScreen" class="login-screen">
+        <div class="login-container">
+            <div class="login-card">
+                <div class="login-header">
+                    <div class="logo">
+                        <i class="fas fa-file-invoice-dollar"></i>
+                        <h1>Themed Edits</h1>
                     </div>
+                    <p class="subtitle">Digital Account Management</p>
                 </div>
-                <button type="submit" class="btn btn-primary" style="width: 100%; margin-top: 10px;">
-                    <i class="fas fa-sign-in-alt"></i> Login
-                </button>
-            </form>
-            <div id="loginAlert" style="margin-top: 15px;"></div>
+                
+                <form id="loginForm" class="login-form">
+                    <div class="form-group">
+                        <label for="loginUserId">
+                            <i class="fas fa-user"></i> User ID
+                        </label>
+                        <input type="text" id="loginUserId" required placeholder="Enter your user ID" autocomplete="username">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="loginName">
+                            <i class="fas fa-user-circle"></i> Name
+                        </label>
+                        <input type="text" id="loginName" required placeholder="Enter your name" autocomplete="name">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="loginPassword">
+                            <i class="fas fa-key"></i> Password
+                        </label>
+                        <div class="password-wrapper">
+                            <input type="password" id="loginPassword" required placeholder="Enter your password" autocomplete="current-password">
+                            <button type="button" class="password-toggle" onclick="togglePassword()">
+                                <i class="fas fa-eye"></i>
+                            </button>
+                        </div>
+                    </div>
+                    
+                    <button type="submit" class="btn btn-primary btn-login">
+                        <i class="fas fa-sign-in-alt"></i> Login
+                    </button>
+                </form>
+                
+                <div id="loginAlert" class="login-alert"></div>
+                
+                <div class="login-footer">
+                    <p><i class="fas fa-shield-alt"></i> Secure login system</p>
+                </div>
+            </div>
         </div>
     </div>
-
+    
     <!-- Main App -->
-    <div class="container" id="mainApp">
-        <header>
-            <div style="flex: 0;">
-                <div class="user-info">
+    <div id="mainApp" class="main-app">
+        <!-- Header -->
+        <header class="app-header">
+            <div class="header-left">
+                <div class="logo">
+                    <i class="fas fa-file-invoice-dollar"></i>
                     <div>
-                        <i class="fas fa-user-circle" ></i>
+                        <h1>Themed Edits</h1>
+                        <p class="subtitle">Digital Account</p>
                     </div>
-                    <div class="user-details">
+                </div>
+            </div>
+            
+            <div class="header-right">
+                <div class="user-profile">
+                    <div class="user-avatar">
+                        <i class="fas fa-user-circle"></i>
+                    </div>
+                    <div class="user-info">
                         <div class="user-name" id="displayName"></div>
                         <div class="user-id" id="displayUserId"></div>
                     </div>
-                    <button class="logout-btn" onclick="logout()">
+                    <button class="btn-logout" onclick="logout()">
                         <i class="fas fa-sign-out-alt"></i>
-                        <span class="logout-text">Logout</span>
+                        <span>Logout</span>
                     </button>
                 </div>
             </div>
-            <div class="header-content">
-                <h1><i class="fas fa-file-invoice-dollar"></i> Themed Edits - Digital Account</h1>
-                <p class="subtitle">Manage clients and automate payment reminders</p>
-            </div>
-            <div style="flex: 0; width: 200px;"></div>
         </header>
-
-        <div id="alertContainer"></div>
-
-        <!-- Admin Dashboard (Only visible to admin) -->
-        <div id="adminDashboard" style="display: none;">
-            <div class="config-section">
+        
+        <!-- Alert Container -->
+        <div id="alertContainer" class="alert-container"></div>
+        
+        <!-- Main Content -->
+        <main class="main-content">
+            <!-- Admin Dashboard -->
+            <div id="adminDashboard" class="dashboard">
+                <!-- Stats Grid -->
                 <div class="stats-grid">
                     <div class="stat-card">
-                        <div class="stat-label">
-                            <i class="fas fa-users"></i> Total Clients
+                        <div class="stat-icon">
+                            <i class="fas fa-users"></i>
                         </div>
-                        <div class="stat-value" id="totalClients">0</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="totalClients">0</div>
+                            <div class="stat-label">Total Clients</div>
+                        </div>
                     </div>
+                    
                     <div class="stat-card">
-                        <div class="stat-label">
-                            <i class="fas fa-calendar-alt"></i> Monthly Clients
+                        <div class="stat-icon">
+                            <i class="fas fa-calendar-alt"></i>
                         </div>
-                        <div class="stat-value" id="monthlyClients">0</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="monthlyClients">0</div>
+                            <div class="stat-label">Monthly Clients</div>
+                        </div>
                     </div>
+                    
                     <div class="stat-card">
-                        <div class="stat-label">
-                            <i class="fas fa-project-diagram"></i> Project Clients
+                        <div class="stat-icon">
+                            <i class="fas fa-project-diagram"></i>
                         </div>
-                        <div class="stat-value" id="projectClients">0</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="projectClients">0</div>
+                            <div class="stat-label">Project Clients</div>
+                        </div>
                     </div>
+                    
                     <div class="stat-card">
-                        <div class="stat-label">
-                            <i class="fas fa-money-bill-wave"></i> Total Monthly Revenue
+                        <div class="stat-icon">
+                            <i class="fas fa-money-bill-wave"></i>
                         </div>
-                        <div class="stat-value" id="monthlyRevenue">Rs. 0</div>
+                        <div class="stat-content">
+                            <div class="stat-value" id="monthlyRevenue">Rs. 0</div>
+                            <div class="stat-label">Monthly Revenue</div>
+                        </div>
                     </div>
                 </div>
-            </div>
-
-            <div class="config-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2><i class="fas fa-users"></i> Clients</h2>
+                
+                <!-- Clients Header -->
+                <div class="section-header">
+                    <h2><i class="fas fa-users"></i> Client Management</h2>
                     <button class="btn btn-primary" onclick="openModal()">
                         <i class="fas fa-plus"></i> Add Client
                     </button>
                 </div>
+                
+                <!-- Clients Grid -->
                 <div id="clientsContainer" class="clients-grid"></div>
             </div>
-        </div>
-
-        <!-- Client Dashboard (Only visible to client) -->
-        <div id="clientDashboard" style="display: none;">
-            <div class="config-section">
-                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
-                    <h2><i class="fas fa-user-circle"></i> My Account Details</h2>
-                </div>
-
-                <div id="clientDetailsContainer"></div>
-
-                <div class="client-only-view">
-                    <h3><i class="fas fa-info-circle"></i> Access Information</h3>
-                    <p>You are currently viewing your account in <strong>read-only mode</strong>.</p>
-                    <p>If you need to update any information or have questions about your payments, please contact the
-                        administrator.</p>
-                </div>
-            </div>
-        </div>
-    </div>
-
-    <!-- Client Modal (Admin Only) -->
-    <div id="clientModal" class="modal">
-        <div class="modal-content">
-            <div class="modal-header">
-                <h2 id="modalTitle"><i class="fas fa-user-plus"></i> Add New Client</h2>
-                <button class="close-btn" onclick="closeModal()"><i class="fas fa-times"></i></button>
-            </div>
-            <form id="clientForm">
-                <div class="form-group">
-                    <label><i class="fas fa-user"></i> Client Name *</label>
-                    <input type="text" id="clientName" required>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-envelope"></i> Email Address *</label>
-                    <input type="email" id="clientEmail" required>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-phone"></i> Phone Number</label>
-                    <input type="tel" id="clientPhone">
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-credit-card"></i> Payment Type *</label>
-                    <select id="paymentType" required onchange="togglePaymentFields()">
-                        <option value="">Select Payment Type</option>
-                        <option value="monthly">Monthly</option>
-                        <option value="project">Per Project</option>
-                    </select>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-money-bill"></i> Amount (PKR) *</label>
-                    <input type="number" id="clientAmount" step="0.01" required>
-                </div>
-                <div id="monthlyFields" style="display: none;">
-                    <div class="form-group">
-                        <label><i class="fas fa-calendar-day"></i> Reminder Day of Month (1-28) *</label>
-                        <input type="number" id="reminderDay" min="1" max="28"
-                            placeholder="e.g., 5 for 5th of every month">
+            
+            <!-- Client Dashboard -->
+            <div id="clientDashboard" class="dashboard">
+                <div class="client-dashboard">
+                    <div class="section-header">
+                        <h2><i class="fas fa-user-circle"></i> My Account</h2>
                     </div>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-sticky-note"></i> Notes</label>
-                    <textarea id="clientNotes" rows="3" style="resize: vertical;"></textarea>
-                </div>
-                <div class="form-group">
-                    <label><i class="fas fa-user-shield"></i> Client Login Credentials</label>
-                    <div
-                        style="background: var(--bg-primary); padding: 15px; border-radius: var(--radius-sm); border: 1px solid var(--border-color);">
-                        <p style="margin-bottom: 10px; color: var(--text-muted); font-size: 0.9rem;">
-                            <i class="fas fa-info-circle"></i> Client login credentials will be auto-generated based on
-                            email. They can access their details only.
-                        </p>
-                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-                            <div>
-                                <label style="font-size: 0.8rem;">User ID (Auto)</label>
-                                <input type="text" id="clientUserId" style="background: var(--bg-secondary);" >
-                            </div>
-                            <div>
-                                <label style="font-size: 0.8rem;">Password (Auto)</label>
-                                <input type="text" id="clientPassword" style="background: var(--bg-secondary);"
-                                    >
-                            </div>
+                    
+                    <div id="clientDetailsContainer" class="client-details"></div>
+                    
+                    <div class="info-box">
+                        <div class="info-icon">
+                            <i class="fas fa-info-circle"></i>
+                        </div>
+                        <div class="info-content">
+                            <h3>Read-Only Access</h3>
+                            <p>You are viewing your account in read-only mode. For any updates or questions, please contact the administrator.</p>
                         </div>
                     </div>
                 </div>
-                <div style="display: flex; gap: 10px;">
-                    <button type="submit" class="btn btn-primary" style="flex: 1;">
+            </div>
+        </main>
+    </div>
+    
+    <!-- Client Modal -->
+    <div id="clientModal" class="modal">
+        <div class="modal-dialog">
+            <div class="modal-header">
+                <h2 id="modalTitle"><i class="fas fa-user-plus"></i> Add New Client</h2>
+                <button class="modal-close" onclick="closeModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <form id="clientForm" class="modal-form">
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="clientName">
+                            <i class="fas fa-user"></i> Client Name *
+                        </label>
+                        <input type="text" id="clientName" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="clientEmail">
+                            <i class="fas fa-envelope"></i> Email Address *
+                        </label>
+                        <input type="email" id="clientEmail" required>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="clientPhone">
+                            <i class="fas fa-phone"></i> Phone Number
+                        </label>
+                        <input type="tel" id="clientPhone">
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="paymentType">
+                            <i class="fas fa-credit-card"></i> Payment Type *
+                        </label>
+                        <select id="paymentType" required onchange="togglePaymentFields()">
+                            <option value="">Select Payment Type</option>
+                            <option value="monthly">Monthly</option>
+                            <option value="project">Per Project</option>
+                        </select>
+                    </div>
+                </div>
+                
+                <div class="form-row">
+                    <div class="form-group">
+                        <label for="clientAmount">
+                            <i class="fas fa-money-bill"></i> Amount (PKR) *
+                        </label>
+                        <input type="number" id="clientAmount" step="0.01" required>
+                    </div>
+                    
+                    <div id="monthlyFields" class="form-group" style="display: none;">
+                        <label for="reminderDay">
+                            <i class="fas fa-calendar-day"></i> Reminder Day (1-28) *
+                        </label>
+                        <input type="number" id="reminderDay" min="1" max="28">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="clientNotes">
+                        <i class="fas fa-sticky-note"></i> Notes
+                    </label>
+                    <textarea id="clientNotes" rows="3"></textarea>
+                </div>
+                
+                <div class="credentials-box">
+                    <div class="credentials-header">
+                        <i class="fas fa-user-shield"></i>
+                        <h4>Client Login Credentials</h4>
+                    </div>
+                    <p class="credentials-info">Auto-generated based on email. Client can access their details only.</p>
+                    
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>User ID</label>
+                            <input type="text" id="clientUserId" readonly>
+                        </div>
+                        
+                        <div class="form-group">
+                            <label>Password</label>
+                            <input type="text" id="clientPassword" readonly>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="modal-actions">
+                    <button type="submit" class="btn btn-primary">
                         <i class="fas fa-save"></i> <span id="submitBtnText">Save Client</span>
                     </button>
-                    <button type="button" class="btn btn-danger" onclick="closeModal()">
-                        <i class="fas fa-times"></i> Cancel
+                    <button type="button" class="btn btn-secondary" onclick="closeModal()">
+                        Cancel
                     </button>
                 </div>
             </form>
         </div>
     </div>
-
-    <script src="https://cdn.jsdelivr.net/npm/emailjs-com@3/dist/email.min.js"></script>
     
-
+    <!-- Payment Modal -->
     <div id="paymentModal" class="modal">
-  <div class="modal-content">
-    <div class="modal-header">
-      <h2><i class="fas fa-money-bill"></i> Record Payment</h2>
-      <button class="close-btn" onclick="closePaymentModal()">
-        <i class="fas fa-times"></i>
-      </button>
+        <div class="modal-dialog modal-sm">
+            <div class="modal-header">
+                <h2><i class="fas fa-money-bill"></i> Record Payment</h2>
+                <button class="modal-close" onclick="closePaymentModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            
+            <form id="paymentForm" class="modal-form">
+                <input type="hidden" id="paymentClientId">
+                
+                <div class="form-group">
+                    <label for="paymentMode">Payment Type</label>
+                    <select id="paymentMode" required>
+                        <option value="full">Full Payment</option>
+                        <option value="partial">Partial Payment</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="paymentAmount">Amount Paid (PKR)</label>
+                    <input type="number" id="paymentAmount" required>
+                </div>
+                
+                <div class="form-group">
+                    <label for="paymentNote">Transaction / Notes</label>
+                    <input type="text" id="paymentNote" placeholder="Optional">
+                </div>
+                
+                <button type="submit" class="btn btn-success btn-block">
+                    <i class="fas fa-save"></i> Save Payment
+                </button>
+            </form>
+        </div>
     </div>
-
-    <form id="paymentForm">
-      <input type="hidden" id="paymentClientId">
-
-      <div class="form-group">
-        <label>Payment Type</label>
-        <select id="paymentMode" required>
-          <option value="full">Full Payment (This Cycle)</option>
-          <option value="partial">Partial Payment</option>
-        </select>
-      </div>
-
-      <div class="form-group">
-        <label>Amount Paid (PKR)</label>
-        <input type="number" id="paymentAmount" required>
-      </div>
-
-      <div class="form-group">
-        <label>Transaction / Notes (optional)</label>
-        <input type="text" id="paymentNote">
-      </div>
-
-      <button type="submit" class="btn btn-success" style="width:100%">
-        <i class="fas fa-save"></i> Save Payment
-      </button>
-    </form>
-  </div>
-</div>
-
-
-<script src="source.js"></script>
+    
+    <!-- Client Details Modal -->
+    <div id="clientDetailsModal" class="modal">
+        <div class="modal-dialog modal-lg">
+            <div class="modal-header">
+                <h2 id="clientDetailsTitle"><i class="fas fa-user"></i> Client Details</h2>
+                <button class="modal-close" onclick="closeDetailsModal()">
+                    <i class="fas fa-times"></i>
+                </button>
+            </div>
+            <div id="clientDetailsContent" class="modal-content">
+                <!-- Dynamic content will be inserted here -->
+            </div>
+        </div>
+    </div>
+    
+    <!-- Scripts -->
+    <script src="source.js"></script>
 </body>
-
 </html>

@@ -1,15 +1,3 @@
-// Secure Credentials - Admin
-const ADMIN_CREDENTIALS = {
-    userId: 'hammadahmed',
-    name: 'Hammad Ahmed',
-    password: 'hammad2004ahmed',
-    role: 'admin'
-};
-
-// Client Credentials - You'll add these when creating clients
-// Format: { userId: 'client123', name: 'Client Name', password: 'clientpass', email: 'client@example.com', role: 'client' }
-let CLIENT_CREDENTIALS = {};
-
 // Configuration
 const CONFIG = {
     firebase: {
@@ -23,40 +11,47 @@ const CONFIG = {
     }
 };
 
+// Admin Credentials
+const ADMIN_CREDENTIALS = {
+    userId: 'hammadahmed',
+    name: 'Hammad Ahmed',
+    password: 'hammad2004ahmed',
+    role: 'admin'
+};
+
+// Global Variables
 let currentUser = null;
 let editingClientId = null;
 let checkInterval;
 let inactivityTimer;
 let lastActivityTime = Date.now();
+let hiddenTime = 0;
 
-// Initialize EmailJS
+// DOM Elements
+const DOM = {
+    loginScreen: document.getElementById('loginScreen'),
+    mainApp: document.getElementById('mainApp'),
+    adminDashboard: document.getElementById('adminDashboard'),
+    clientDashboard: document.getElementById('clientDashboard'),
+    loginForm: document.getElementById('loginForm'),
+    clientForm: document.getElementById('clientForm'),
+    paymentForm: document.getElementById('paymentForm'),
+    clientsContainer: document.getElementById('clientsContainer'),
+    clientDetailsContainer: document.getElementById('clientDetailsContainer'),
+    alertContainer: document.getElementById('alertContainer'),
+    loginAlert: document.getElementById('loginAlert')
+};
+
+// EmailJS Initialization
 emailjs.init(CONFIG.emailjs.publicKey);
 
-// Check if user is logged in
-function checkAuth() {
-    const session = sessionStorage.getItem('userSession');
-    if (!session) {
-        return false;
-    }
+// Initialize App
+document.addEventListener('DOMContentLoaded', () => {
+    initAuth();
+    initEventListeners();
+});
 
-    try {
-        const sessionData = JSON.parse(session);
-        const currentTime = Date.now();
-
-        // Check if session is still valid (not expired)
-        if (currentTime - sessionData.loginTime > 24 * 60 * 60 * 1000) {
-            logout();
-            return false;
-        }
-
-        return true;
-    } catch (error) {
-        console.error('Auth check error:', error);
-        return false;
-    }
-}
-
-// Initialize auth on page load
+// Authentication Functions
 function initAuth() {
     const session = sessionStorage.getItem('userSession');
     if (session) {
@@ -72,62 +67,78 @@ function initAuth() {
     }
 }
 
-// Login Form Handler
-function handleLogin(e) {
-    e.preventDefault();
+function initEventListeners() {
+    // Login form
+    DOM.loginForm.addEventListener('submit', handleLogin);
+    
+    // Client form
+    DOM.clientForm.addEventListener('submit', handleClientFormSubmit);
+    
+    // Payment form
+    DOM.paymentForm.addEventListener('submit', handlePaymentFormSubmit);
+    
+    // Email input for auto-generating credentials
+    document.getElementById('clientEmail')?.addEventListener('input', updateClientCredentials);
+    
+}
 
+// Login Handler
+async function handleLogin(e) {
+    e.preventDefault();
+    
     const userId = document.getElementById('loginUserId').value.trim();
     const name = document.getElementById('loginName').value.trim();
     const password = document.getElementById('loginPassword').value;
-
-    // Check if admin
+    
+    // Check admin credentials
     if (userId === ADMIN_CREDENTIALS.userId &&
         name === ADMIN_CREDENTIALS.name &&
         password === ADMIN_CREDENTIALS.password) {
-
+        
         const sessionData = {
             userId: userId,
             name: name,
             role: 'admin',
             loginTime: Date.now()
         };
-
+        
         sessionStorage.setItem('userSession', JSON.stringify(sessionData));
         currentUser = sessionData;
         showLoginAlert('Login successful as Administrator!', 'success');
-
+        
         setTimeout(() => {
             showMainApp(sessionData);
         }, 500);
+        return;
     }
-    else {
-        authenticateClientFromFirebase(userId, name, password);
-    }
-
+    
+    // Check client credentials
+    await authenticateClientFromFirebase(userId, name, password);
 }
+
 
 async function authenticateClientFromFirebase(userId, name, password) {
     try {
         const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
         const clients = await response.json();
-
+        
         if (!clients) {
             showLoginAlert('No clients found.', 'error');
             return;
         }
-
+        
         const client = Object.values(clients).find(c =>
             c.clientCredentials &&
             c.clientCredentials.userId === userId &&
             c.clientCredentials.password === password &&
             c.name === name
         );
-
+        
         if (!client) {
             showLoginAlert('Invalid credentials. Please try again.', 'error');
             return;
         }
-
+        
         const sessionData = {
             userId: userId,
             name: client.name,
@@ -135,57 +146,57 @@ async function authenticateClientFromFirebase(userId, name, password) {
             clientEmail: client.email,
             loginTime: Date.now()
         };
-
+        
         sessionStorage.setItem('userSession', JSON.stringify(sessionData));
         currentUser = sessionData;
-
         showLoginAlert('Login successful!', 'success');
-
+        
         setTimeout(() => {
             showMainApp(sessionData);
         }, 500);
-
+        
     } catch (error) {
-        console.error(error);
+        console.error('Login error:', error);
         showLoginAlert('Login error. Please try again later.', 'error');
     }
 }
 
-
-document.getElementById('loginForm').addEventListener('submit', handleLogin);
-
 function showLoginScreen() {
-    document.getElementById('loginScreen').style.display = 'flex';
-    document.getElementById('mainApp').classList.remove('active');
-    stopInactivityMonitor();
+    DOM.loginScreen.style.display = 'flex';
+    DOM.mainApp.classList.remove('active');
 }
 
 function showMainApp(sessionData) {
-    document.getElementById('loginScreen').style.display = 'none';
-    document.getElementById('mainApp').classList.add('active');
-
-    // Update user info display
-    document.getElementById('displayName').innerHTML = `${sessionData.name} <span class="role-badge ${sessionData.role === 'admin' ? 'badge-admin' : 'badge-client'}">${sessionData.role}</span>`;
-    document.getElementById('displayUserId').textContent = `ID: ${sessionData.userId}`;
-
-    // Show appropriate dashboard based on role
+    DOM.loginScreen.style.display = 'none';
+    DOM.mainApp.classList.add('active');
+    
+    // Update user info
+    const displayName = document.getElementById('displayName');
+    const displayUserId = document.getElementById('displayUserId');
+    
+    const roleBadgeClass = sessionData.role === 'admin' ? 'admin' : 'client';
+    const roleBadge = `<span class="role-badge ${roleBadgeClass}">${sessionData.role}</span>`;
+    
+    displayName.innerHTML = `${sessionData.name} ${roleBadge}`;
+    displayUserId.textContent = `ID: ${sessionData.userId}`;
+    
+    // Show appropriate dashboard
     if (sessionData.role === 'admin') {
-        document.getElementById('adminDashboard').style.display = 'block';
-        document.getElementById('clientDashboard').style.display = 'none';
+        DOM.adminDashboard.classList.add('active');
+        DOM.clientDashboard.classList.remove('active');
         loadClients();
         startReminderCheck();
     } else {
-        document.getElementById('adminDashboard').style.display = 'none';
-        document.getElementById('clientDashboard').style.display = 'block';
+        DOM.adminDashboard.classList.remove('active');
+        DOM.clientDashboard.classList.add('active');
         loadClientDetails(sessionData.clientEmail);
     }
-
-    startInactivityMonitor();
 }
+
 
 function logout() {
     sessionStorage.removeItem('userSession');
-    document.getElementById('loginForm').reset();
+    DOM.loginForm.reset();
     currentUser = null;
     showLoginScreen();
 }
@@ -193,31 +204,67 @@ function logout() {
 function togglePassword() {
     const input = document.getElementById('loginPassword');
     const btn = event.target.closest('.password-toggle');
+    const icon = btn.querySelector('i');
+    
     if (input.type === 'password') {
         input.type = 'text';
-        btn.innerHTML = '<i class="fas fa-eye-slash"></i>';
+        icon.className = 'fas fa-eye-slash';
     } else {
         input.type = 'password';
-        btn.innerHTML = '<i class="fas fa-eye"></i>';
+        icon.className = 'fas fa-eye';
     }
 }
 
-// Generate client credentials from email
+// Client Management
+function openModal(clientId = null) {
+    if (!checkAuth() || currentUser.role !== 'admin') return;
+    
+    editingClientId = clientId;
+    const modal = document.getElementById('clientModal');
+    const title = document.getElementById('modalTitle');
+    const submitBtn = document.getElementById('submitBtnText');
+    
+    if (clientId) {
+        title.innerHTML = '<i class="fas fa-user-edit"></i> Edit Client';
+        submitBtn.textContent = 'Update Client';
+        loadClientData(clientId);
+    } else {
+        title.innerHTML = '<i class="fas fa-user-plus"></i> Add New Client';
+        submitBtn.textContent = 'Save Client';
+        DOM.clientForm.reset();
+        updateClientCredentials();
+    }
+    
+    modal.classList.add('active');
+}
+
+function closeModal() {
+    document.getElementById('clientModal').classList.remove('active');
+    DOM.clientForm.reset();
+    editingClientId = null;
+}
+
+function togglePaymentFields() {
+    const type = document.getElementById('paymentType').value;
+    document.getElementById('monthlyFields').style.display = 
+        type === 'monthly' ? 'block' : 'none';
+}
+
 function generateClientCredentials(email) {
     const emailParts = email.split('@')[0];
-    const userId = emailParts.toLowerCase().replace(/[^a-z0-9]/g, '') + Math.floor(1000 + Math.random() * 9000);
-    const password = Math.random().toString(36).slice(-8) + Math.floor(10 + Math.random() * 90);
-
+    const userId = emailParts.toLowerCase().replace(/[^a-z0-9]/g, '') + 
+                   Math.floor(1000 + Math.random() * 9000);
+    const password = Math.random().toString(36).slice(-8) + 
+                     Math.floor(10 + Math.random() * 90);
+    
     return { userId, password };
 }
 
-// Update client credentials in form
 function updateClientCredentials() {
     const email = document.getElementById('clientEmail').value.trim();
     const userIdInput = document.getElementById('clientUserId');
     const passwordInput = document.getElementById('clientPassword');
-
-    // Only auto-generate ONCE (when fields are empty)
+    
     if (email && !userIdInput.value && !passwordInput.value) {
         const credentials = generateClientCredentials(email);
         userIdInput.value = credentials.userId;
@@ -225,140 +272,51 @@ function updateClientCredentials() {
     }
 }
 
-
-// Inactivity Monitor (2 minutes = 120000ms)
-function startInactivityMonitor() {
-    lastActivityTime = Date.now();
-
-    // Reset activity timer on any user interaction
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    events.forEach(event => {
-        document.addEventListener(event, resetInactivityTimer);
-    });
-
-    // Check for screen visibility changes
-    document.addEventListener('visibilitychange', handleVisibilityChange);
-
-    // Check inactivity every 10 seconds
-    inactivityTimer = setInterval(() => {
-        const inactiveTime = Date.now() - lastActivityTime;
-        if (inactiveTime > 120000) { // 2 minutes
-            logout();
-            showAlert('Session expired due to inactivity', 'warning');
-        }
-    }, 10000);
-}
-
-function stopInactivityMonitor() {
-    if (inactivityTimer) {
-        clearInterval(inactivityTimer);
-    }
-    const events = ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'];
-    events.forEach(event => {
-        document.removeEventListener(event, resetInactivityTimer);
-    });
-    document.removeEventListener('visibilitychange', handleVisibilityChange);
-}
-
-function resetInactivityTimer() {
-    lastActivityTime = Date.now();
-}
-
-let hiddenTime = 0;
-function handleVisibilityChange() {
-    if (document.hidden) {
-        hiddenTime = Date.now();
-    } else {
-        if (hiddenTime > 0) {
-            const timeHidden = Date.now() - hiddenTime;
-            if (timeHidden > 120000) { // 2 minutes
-                logout();
-                showAlert('Session expired due to screen being off', 'warning');
-            }
-        }
-    }
-}
-
-function showLoginAlert(message, type) {
-    const container = document.getElementById('loginAlert');
-    const icon = type === 'success' ? 'check-circle' : 'exclamation-triangle';
-    container.innerHTML = `<div class="alert alert-${type}"><i class="fas fa-${icon}"></i> ${message}</div>`;
-    setTimeout(() => {
-        container.innerHTML = '';
-    }, 4000);
-}
-
-// Client Management Functions
-function togglePaymentFields() {
-    const type = document.getElementById('paymentType').value;
-    document.getElementById('monthlyFields').style.display =
-        type === 'monthly' ? 'block' : 'none';
-}
-
-function openModal(clientId = null) {
-    if (!checkAuth() || currentUser.role !== 'admin') return;
-
-    editingClientId = clientId;
-    const modal = document.getElementById('clientModal');
-    const form = document.getElementById('clientForm');
-
-    // Auto-generate credentials when email changes
-    document.getElementById('clientEmail').addEventListener('input', updateClientCredentials);
-
-    if (clientId) {
-        document.getElementById('modalTitle').innerHTML = '<i class="fas fa-user-edit"></i> Edit Client';
-        document.getElementById('submitBtnText').textContent = 'Update Client';
-        loadClientData(clientId);
-    } else {
-        document.getElementById('modalTitle').innerHTML = '<i class="fas fa-user-plus"></i> Add New Client';
-        document.getElementById('submitBtnText').textContent = 'Save Client';
-        form.reset();
-        updateClientCredentials();
-    }
-
-    modal.classList.add('active');
-}
-
-function closeModal() {
-    document.getElementById('clientModal').classList.remove('active');
-    document.getElementById('clientForm').reset();
-    editingClientId = null;
-}
-
 async function loadClientData(clientId) {
     try {
         const response = await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`);
         const client = await response.json();
-
-        document.getElementById('clientName').value = client.name;
-        document.getElementById('clientEmail').value = client.email;
+        
+        if (!client) throw new Error('Client not found');
+        
+        // Fill form fields
+        document.getElementById('clientName').value = client.name || '';
+        document.getElementById('clientEmail').value = client.email || '';
         document.getElementById('clientPhone').value = client.phone || '';
-        document.getElementById('paymentType').value = client.paymentType;
-        document.getElementById('clientAmount').value = client.amount;
+        document.getElementById('paymentType').value = client.paymentType || '';
+        document.getElementById('clientAmount').value = client.amount || '';
         document.getElementById('clientNotes').value = client.notes || '';
-
+        
         if (client.paymentType === 'monthly') {
-            document.getElementById('reminderDay').value = client.reminderDay;
+            document.getElementById('reminderDay').value = client.reminderDay || '';
             togglePaymentFields();
         }
-
-        // Load client credentials if they exist
-        const clientUserId = client.clientCredentials?.userId || generateClientCredentials(client.email).userId;
-        const clientPassword = client.clientCredentials?.password || generateClientCredentials(client.email).password;
-
-        document.getElementById('clientUserId').value = clientUserId;
-        document.getElementById('clientPassword').value = clientPassword;
+        
+        // Load credentials
+        const userIdInput = document.getElementById('clientUserId');
+        const passwordInput = document.getElementById('clientPassword');
+        
+        if (client.clientCredentials) {
+            userIdInput.value = client.clientCredentials.userId;
+            passwordInput.value = client.clientCredentials.password;
+        } else {
+            const credentials = generateClientCredentials(client.email);
+            userIdInput.value = credentials.userId;
+            passwordInput.value = credentials.password;
+        }
+        
     } catch (error) {
+        console.error('Error loading client data:', error);
         showAlert('Error loading client data', 'error');
     }
 }
 
-document.getElementById('clientForm').addEventListener('submit', async (e) => {
+async function handleClientFormSubmit(e) {
     e.preventDefault();
-
+    
     if (!checkAuth() || currentUser.role !== 'admin') return;
-
-    const clientData = {
+    
+    const formData = {
         name: document.getElementById('clientName').value,
         email: document.getElementById('clientEmail').value,
         phone: document.getElementById('clientPhone').value,
@@ -369,63 +327,479 @@ document.getElementById('clientForm').addEventListener('submit', async (e) => {
             userId: document.getElementById('clientUserId').value,
             password: document.getElementById('clientPassword').value
         },
-        createdAt: editingClientId ? undefined : new Date().toISOString()
+        createdAt: editingClientId ? undefined : new Date().toISOString(),
+        totalPaid: 0,
+        status: 'due',
+        lastPaymentDate: null
     };
-
-    if (clientData.paymentType === 'monthly') {
-        clientData.reminderDay = parseInt(document.getElementById('reminderDay').value);
-        clientData.lastReminderSent = null;
-        clientData.reminderCount = 0;
+    
+    if (formData.paymentType === 'monthly') {
+        formData.reminderDay = parseInt(document.getElementById('reminderDay').value);
+        formData.lastReminderSent = null;
+        formData.reminderCount = 0;
+        formData.lastPaidCycle = null;
     }
-
+    
     try {
         const url = editingClientId
             ? `${CONFIG.firebase.databaseURL}/clients/${editingClientId}.json`
             : `${CONFIG.firebase.databaseURL}/clients.json`;
-
+        
         const method = editingClientId ? 'PATCH' : 'POST';
-
-
+        
         const response = await fetch(url, {
             method: method,
             headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(clientData)
+            body: JSON.stringify(formData)
         });
-
-        const result = await response.json();
-
-        // Update CLIENT_CREDENTIALS object
-        if (editingClientId) {
-            // Update existing credentials
-            CLIENT_CREDENTIALS[clientData.clientCredentials.userId] = {
-                name: clientData.name,
-                password: clientData.clientCredentials.password,
-                email: clientData.email,
-                role: 'client'
-            };
-        } else {
-            // Add new credentials
-            CLIENT_CREDENTIALS[clientData.clientCredentials.userId] = {
-                name: clientData.name,
-                password: clientData.clientCredentials.password,
-                email: clientData.email,
-                role: 'client'
-            };
-        }
-
-        showAlert(editingClientId ? 'Client updated successfully!' : 'Client added successfully!', 'success');
+        
+        await response.json();
+        
+        showAlert(
+            editingClientId ? 'Client updated successfully!' : 'Client added successfully!',
+            'success'
+        );
+        
         closeModal();
         loadClients();
+        
     } catch (error) {
+        console.error('Error saving client:', error);
         showAlert('Error saving client', 'error');
     }
-});
+}
+
+// Client List Management
+async function loadClients() {
+    if (!checkAuth() || currentUser.role !== 'admin') return;
+    
+    try {
+        const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
+        const clients = await response.json();
+        
+        // Reset monthly clients if needed
+        if (clients) {
+            for (const [id, client] of Object.entries(clients)) {
+                await resetMonthlyIfNeeded(client, id);
+            }
+        }
+        
+        // Refresh clients after reset
+        const refreshedResponse = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
+        const refreshedClients = await refreshedResponse.json();
+        
+        updateClientsGrid(refreshedClients);
+        updateStats(refreshedClients);
+        
+    } catch (error) {
+        console.error('Error loading clients:', error);
+        showAlert('Error loading clients', 'error');
+    }
+}
+
+function updateClientsGrid(clients) {
+    if (!clients) {
+        DOM.clientsContainer.innerHTML = createEmptyState('clients');
+        return;
+    }
+    
+    const clientsArray = Object.entries(clients);
+    
+    if (clientsArray.length === 0) {
+        DOM.clientsContainer.innerHTML = createEmptyState('clients');
+        return;
+    }
+    
+    DOM.clientsContainer.innerHTML = clientsArray.map(([id, client]) => 
+        createClientCard(id, client)
+    ).join('');
+}
+
+function createClientCard(id, client) {
+    const paid = client.totalPaid || 0;
+    const remaining = client.amount - paid;
+    const statusClass = remaining <= 0 ? 'amount-paid' : 'amount-due';
+    const statusText = remaining <= 0 ? 'Paid' : `Due: Rs. ${remaining.toLocaleString('en-PK')}`;
+    
+    const lastPayment = client.lastPaymentDate ? 
+        new Date(client.lastPaymentDate).toLocaleDateString('en-US', {
+            year: 'numeric',
+            month: 'short',
+            day: 'numeric'
+        }) : 'Not paid yet';
+    
+    return `
+        <div class="client-card">
+            <div class="client-card-header" onclick="toggleClientDetails('${id}')">
+                <div class="client-name">
+                    <i class="fas fa-user"></i> ${client.name}
+                </div>
+                <span class="payment-badge ${client.paymentType === 'monthly' ? 'badge-monthly' : 'badge-project'}">
+                    <i class="fas ${client.paymentType === 'monthly' ? 'fa-calendar-alt' : 'fa-project-diagram'}"></i>
+                    ${client.paymentType === 'monthly' ? 'Monthly' : 'Project'}
+                </span>
+            </div>
+            
+            <div class="client-card-preview">
+                <div class="preview-item">
+                    <span class="preview-label">Email</span>
+                    <span class="preview-value">${client.email}</span>
+                </div>
+                
+                <div class="preview-item">
+                    <span class="preview-label">Total Amount</span>
+                    <div class="amount-display">
+                        <div class="amount-total">Rs. ${client.amount.toLocaleString('en-PK')}</div>
+                        <div class="amount-status ${statusClass}">${statusText}</div>
+                    </div>
+                </div>
+                
+                <div class="preview-item">
+                    <span class="preview-label">Last Payment</span>
+                    <span class="preview-value">${lastPayment}</span>
+                </div>
+            </div>
+            
+            <div class="client-actions">
+                <button class="btn btn-success btn-small" onclick="sendManualReminder('${id}')">
+                    <i class="fas fa-envelope"></i> Email
+                </button>
+                <button class="btn btn-success btn-small" 
+                    onclick="openPaymentModal('${id}', ${remaining})"
+                    ${remaining <= 0 ? 'disabled' : ''}>
+                    <i class="fas fa-check-circle"></i> Pay
+                </button>
+                <button class="btn btn-primary btn-small" onclick="openModal('${id}')">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-danger btn-small" onclick="deleteClient('${id}')">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
+            </div>
+            
+            <div id="client-details-${id}" class="client-details-content" style="display: none;">
+                <!-- Details will be loaded on demand -->
+            </div>
+        </div>
+    `;
+}
+
+async function toggleClientDetails(clientId) {
+    const detailsDiv = document.getElementById(`client-details-${clientId}`);
+    
+    if (detailsDiv.style.display === 'none') {
+        if (!detailsDiv.hasChildNodes()) {
+            await loadClientDetailsForModal(clientId, detailsDiv);
+        }
+        detailsDiv.style.display = 'block';
+    } else {
+        detailsDiv.style.display = 'none';
+    }
+}
+
+async function loadClientDetailsForModal(clientId, container) {
+    try {
+        const response = await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`);
+        const client = await response.json();
+        
+        const paymentsResponse = await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}/payments.json`);
+        const payments = await paymentsResponse.json();
+        
+        const paymentsList = payments ? Object.values(payments) : [];
+        
+        container.innerHTML = `
+            <div class="modal-content">
+                <div class="client-details-grid">
+                    <div class="detail-item">
+                        <i class="fas fa-envelope"></i>
+                        <div class="detail-label">Email</div>
+                        <div class="detail-value">${client.email}</div>
+                    </div>
+                    
+                    ${client.phone ? `
+                        <div class="detail-item">
+                            <i class="fas fa-phone"></i>
+                            <div class="detail-label">Phone</div>
+                            <div class="detail-value">${client.phone}</div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="detail-item">
+                        <i class="fas fa-money-bill"></i>
+                        <div class="detail-label">Total Amount</div>
+                        <div class="detail-value">Rs. ${client.amount.toLocaleString('en-PK')}</div>
+                    </div>
+                    
+                    <div class="detail-item">
+                        <i class="fas fa-check-circle"></i>
+                        <div class="detail-label">Amount Paid</div>
+                        <div class="detail-value">Rs. ${(client.totalPaid || 0).toLocaleString('en-PK')}</div>
+                    </div>
+                    
+                    ${client.paymentType === 'monthly' ? `
+                        <div class="detail-item">
+                            <i class="fas fa-calendar-day"></i>
+                            <div class="detail-label">Reminder Day</div>
+                            <div class="detail-value">${client.reminderDay} of each month</div>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="detail-item">
+                        <i class="fas fa-user-shield"></i>
+                        <div class="detail-label">Client Login ID</div>
+                        <div class="detail-value">${client.clientCredentials?.userId || 'Not set'}</div>
+                    </div>
+                </div>
+                
+                ${client.notes ? `
+                    <div style="margin-top: var(--spacing-lg);">
+                        <h3><i class="fas fa-sticky-note"></i> Notes</h3>
+                        <pre class="notes-pre">${client.notes}</pre>
+                    </div>
+                ` : ''}
+                
+                ${paymentsList.length > 0 ? `
+                    <div style="margin-top: var(--spacing-lg);">
+                        <h3><i class="fas fa-history"></i> Payment History</h3>
+                        <div style="margin-top: var(--spacing-md);">
+                            ${paymentsList.map(payment => `
+                                <div style="
+                                    background: var(--bg-secondary);
+                                    padding: var(--spacing-md);
+                                    border-radius: var(--border-radius-sm);
+                                    margin-bottom: var(--spacing-sm);
+                                    border-left: 3px solid var(--success-color);
+                                ">
+                                    <div style="display: flex; justify-content: space-between;">
+                                        <strong>Rs. ${payment.amount.toLocaleString('en-PK')}</strong>
+                                        <span style="color: var(--text-muted); font-size: 0.9rem;">
+                                            ${new Date(payment.date).toLocaleDateString()}
+                                        </span>
+                                    </div>
+                                    ${payment.note ? `<div style="margin-top: var(--spacing-xs); color: var(--text-muted);">${payment.note}</div>` : ''}
+                                </div>
+                            `).join('')}
+                        </div>
+                    </div>
+                ` : ''}
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error loading client details:', error);
+        container.innerHTML = '<div class="alert alert-error">Error loading details</div>';
+    }
+}
+
+// Client Dashboard
+async function loadClientDetails(clientEmail) {
+    if (!checkAuth() || currentUser.role !== 'client') return;
+    
+    try {
+        const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
+        const clients = await response.json();
+        
+        if (!clients) {
+            DOM.clientDetailsContainer.innerHTML = createEmptyState('account');
+            return;
+        }
+        
+        const clientEntry = Object.entries(clients).find(([id, client]) => 
+            client.email === clientEmail
+        );
+        
+        if (!clientEntry) {
+            DOM.clientDetailsContainer.innerHTML = createEmptyState('account');
+            return;
+        }
+        
+        const [id, client] = clientEntry;
+        
+        DOM.clientDetailsContainer.innerHTML = `
+            <div class="client-card">
+                <div class="client-card-header">
+                    <div class="client-name">
+                        <i class="fas fa-user-circle"></i> ${client.name}
+                    </div>
+                    <span class="payment-badge ${client.paymentType === 'monthly' ? 'badge-monthly' : 'badge-project'}">
+                        <i class="fas ${client.paymentType === 'monthly' ? 'fa-calendar-alt' : 'fa-project-diagram'}"></i>
+                        ${client.paymentType === 'monthly' ? 'Monthly' : 'Project'}
+                    </span>
+                </div>
+                
+                <div class="client-card-preview">
+                    <div class="preview-item">
+                        <span class="preview-label">Email</span>
+                        <span class="preview-value">${client.email}</span>
+                    </div>
+                    
+                    ${client.phone ? `
+                        <div class="preview-item">
+                            <span class="preview-label">Phone</span>
+                            <span class="preview-value">${client.phone}</span>
+                        </div>
+                    ` : ''}
+                    
+                    <div class="preview-item">
+                        <span class="preview-label">Payment Amount</span>
+                        <span class="preview-value">Rs. ${client.amount.toLocaleString('en-PK')}</span>
+                    </div>
+                    
+                    <div class="preview-item">
+                        <span class="preview-label">Last Payment Date</span>
+                        <span class="preview-value">
+                            ${client.lastPaymentDate ? 
+                                new Date(client.lastPaymentDate).toLocaleDateString('en-US', {
+                                    year: 'numeric',
+                                    month: 'long',
+                                    day: 'numeric'
+                                }) : 
+                                'No payments yet'}
+                        </span>
+                    </div>
+                    
+                    ${client.paymentType === 'monthly' ? `
+                        <div class="preview-item">
+                            <span class="preview-label">Payment Day</span>
+                            <span class="preview-value">${client.reminderDay} of each month</span>
+                        </div>
+                    ` : ''}
+                </div>
+            </div>
+        `;
+        
+    } catch (error) {
+        console.error('Error loading client details:', error);
+        DOM.clientDetailsContainer.innerHTML = `
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-triangle"></i> Error loading account details
+            </div>
+        `;
+    }
+}
+
+// Stats and Analytics
+function updateStats(clients) {
+    if (!clients) {
+        document.getElementById('totalClients').textContent = '0';
+        document.getElementById('monthlyClients').textContent = '0';
+        document.getElementById('projectClients').textContent = '0';
+        document.getElementById('monthlyRevenue').textContent = 'Rs. 0';
+        return;
+    }
+    
+    const clientsArray = Object.values(clients);
+    const monthlyClients = clientsArray.filter(c => c.paymentType === 'monthly');
+    const projectClients = clientsArray.filter(c => c.paymentType === 'project');
+    const monthlyRevenue = monthlyClients.reduce(
+        (sum, c) => sum + Math.min(c.amount, c.totalPaid || 0),
+        0
+    );
+    
+    document.getElementById('totalClients').textContent = clientsArray.length;
+    document.getElementById('monthlyClients').textContent = monthlyClients.length;
+    document.getElementById('projectClients').textContent = projectClients.length;
+    document.getElementById('monthlyRevenue').textContent = 
+        `Rs. ${monthlyRevenue.toLocaleString('en-PK', { 
+            minimumFractionDigits: 2, 
+            maximumFractionDigits: 2 
+        })}`;
+}
+
+// Payment Management
+function openPaymentModal(clientId, amount) {
+    document.getElementById('paymentClientId').value = clientId;
+    document.getElementById('paymentAmount').value = amount;
+    document.getElementById('paymentModal').classList.add('active');
+}
+
+function closePaymentModal() {
+    document.getElementById('paymentModal').classList.remove('active');
+    DOM.paymentForm.reset();
+}
+
+async function handlePaymentFormSubmit(e) {
+    e.preventDefault();
+    
+    const clientId = document.getElementById('paymentClientId').value;
+    const amount = parseFloat(document.getElementById('paymentAmount').value);
+    const mode = document.getElementById('paymentMode').value;
+    const note = document.getElementById('paymentNote').value;
+    
+    // Get client data
+    const clientRes = await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`);
+    const client = await clientRes.json();
+    
+    // Create payment record
+    const paymentDate = new Date().toISOString();
+    const cycle = client.paymentType === 'monthly' ? getBillingCycle(client.reminderDay) : null;
+    
+    const paymentRecord = {
+        amount,
+        note,
+        date: paymentDate,
+        mode,
+        cycle
+    };
+    
+    try {
+        // Save payment
+        await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}/payments.json`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(paymentRecord)
+        });
+        
+        // Update client
+        const newTotalPaid = (client.totalPaid || 0) + amount;
+        const updateData = {
+            totalPaid: newTotalPaid,
+            status: (client.amount - newTotalPaid) <= 0 ? 'paid' : 'due',
+            lastPaymentDate: paymentDate
+        };
+        
+        if (client.paymentType === 'monthly') {
+            updateData.lastPaidCycle = cycle;
+        }
+        
+        await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`, {
+            method: 'PATCH',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(updateData)
+        });
+        
+        closePaymentModal();
+        loadClients();
+        showAlert('Payment recorded successfully!', 'success');
+        
+    } catch (error) {
+        console.error('Error recording payment:', error);
+        showAlert('Error recording payment', 'error');
+    }
+}
+
+// Helper Functions
+function getBillingCycle(reminderDay) {
+    const now = new Date();
+    let month = now.getMonth();
+    let year = now.getFullYear();
+    
+    if (now.getDate() < reminderDay) {
+        month--;
+        if (month < 0) {
+            month = 11;
+            year--;
+        }
+    }
+    
+    return `${year}-${month + 1}`;
+}
 
 async function resetMonthlyIfNeeded(client, clientId) {
     if (client.paymentType !== 'monthly') return;
-
+    
     const currentCycle = getBillingCycle(client.reminderDay);
-
+    
     if (client.lastPaidCycle && client.lastPaidCycle !== currentCycle) {
         await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`, {
             method: 'PATCH',
@@ -438,382 +812,46 @@ async function resetMonthlyIfNeeded(client, clientId) {
     }
 }
 
-
-
-async function loadClients() {
-    if (!checkAuth() || currentUser.role !== 'admin') return;
-
-    try {
-        const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
-        const clients = await response.json();
-        for (const [id, client] of Object.entries(clients)) {
-            await resetMonthlyIfNeeded(client, id);
-        }
-        const refreshedResponse = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
-        const refreshedClients = await refreshedResponse.json();
-
-
-        const container = document.getElementById('clientsContainer');
-
-        if (!clients) {
-            container.innerHTML = `
-                        <div class="empty-state" style="grid-column: 1/-1;">
-                            <div class="empty-state-icon"><i class="fas fa-users"></i></div>
-                            <h3>No clients yet</h3>
-                            <p>Add your first client to get started</p>
-                        </div>
-                    `;
-            updateStats(null);
-            return;
-        }
-
-        // Update CLIENT_CREDENTIALS from loaded clients
-        Object.values(clients).forEach(client => {
-            if (client.clientCredentials) {
-                CLIENT_CREDENTIALS[client.clientCredentials.userId] = {
-                    name: client.name,
-                    password: client.clientCredentials.password,
-                    email: client.email,
-                    role: 'client'
-                };
-            }
-        });
-
-        container.innerHTML = Object.entries(refreshedClients).map(([id, client]) => `
-        
-                    <div class="client-card">
-                        <div class="client-header">
-                            <div class="client-name">
-                                <i class="fas fa-user"></i> ${client.name}
-                            </div>
-                            <span class="payment-badge ${client.paymentType === 'monthly' ? 'badge-monthly' : 'badge-project'}">
-                                <i class="fas ${client.paymentType === 'monthly' ? 'fa-calendar-alt' : 'fa-project-diagram'}"></i>
-                                ${client.paymentType === 'monthly' ? 'Monthly' : 'Project'}
-                            </span>
-                        </div>
-                        <div class="client-info">
-                            <div class="client-info-item">
-                                <i class="fas fa-envelope"></i>
-                                <div ><strong>Email:</strong> ${client.email}</div>
-                            </div>
-                            ${client.phone ? `
-                                <div class="client-info-item">
-                                    <i class="fas fa-phone"></i>
-                                    <div><strong>Phone:</strong> ${client.phone}</div>
-                                </div>
-                            ` : ''}
-                            <div class="client-info-item">
-                                <i class="fas fa-money-bill"></i>
-                                ${(() => {
-                const paid = client.totalPaid || 0;
-                const remaining = client.amount - paid;
-                const cls = remaining <= 0 ? 'amount-paid' : 'amount-due';
-                const label = remaining <= 0 ? 'Received' : 'Receivable';
-
-                return `
-        <div>
-            <strong>Total:</strong> Rs. ${client.amount.toLocaleString('en-PK')}
-        </div>
-        <div class="${cls}">
-            <strong>${label}:</strong> Rs. ${Math.max(remaining, 0).toLocaleString('en-PK')}
-        </div>
-    `;
-            })()}
-
-                            </div>
-                            <div class="client-info-item">
-    <i class="fas fa-calendar-check"></i>
-    <div><strong>Last Payment:</strong> 
-        ${client.lastPaymentDate ? 
-            new Date(client.lastPaymentDate).toLocaleString('en-PK', { 
-                year: 'numeric', 
-                month: 'short', 
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit'
-            }) : 
-            'Not paid yet'}
-    </div>
-</div>
-                            ${client.paymentType === 'monthly' ? `
-                                <div class="client-info-item">
-                                    <i class="fas fa-calendar-day"></i>
-                                    <div><strong>Reminder Day:</strong> ${client.reminderDay} of each month</div>
-                                </div>
-                            ` : ''}
-                            <div class="client-info-item">
-                                <i class="fas fa-user-shield"></i>
-                                <div><strong>Client Login ID:</strong> ${client.clientCredentials?.userId || 'Not set'}</div>
-                            </div>
-                            ${client.notes ? `
-                                <div style="margin-top: 15px; padding-top: 15px; border-top: 1px solid var(--border-color);">
-                                    <div class="client-info-item">
-                                        <i class="fas fa-sticky-note"></i>
-                                        <div class="client-notes">
-  <strong>Notes:</strong>
-  <pre class="notes-pre">${client.notes || '—'}</pre>
-</div>
-
-                                    </div>
-                                </div>
-                            ` : ''}
-                        </div>
-                        <div class="client-actions" style="flex-wrap: wrap;">
-                            <button class="btn btn-success btn-small" onclick="sendManualReminder('${id}')">
-                                <i class="fas fa-envelope"></i> Send Email
-                            </button>
-                            <button 
-    class="btn btn-success btn-small"
-    ${client.amount - (client.totalPaid || 0) <= 0 ? 'disabled' : ''}
-    onclick="openPaymentModal('${id}', ${client.amount - (client.totalPaid || 0)})">
-
-        <i class="fas fa-check-circle"></i> Mark Paid
-    </button>
-                            <button class="btn btn-primary btn-small" onclick="openModal('${id}')">
-                                <i class="fas fa-edit"></i> Edit
-                            </button>
-                            <button class="btn btn-danger btn-small" onclick="deleteClient('${id}')">
-                                <i class="fas fa-trash"></i> Delete
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
-
-        updateStats(refreshedClients);
-
-    } catch (error) {
-        showAlert('Error loading clients', 'error');
-    }
-}
-
-// Load client details for client role
-async function loadClientDetails(clientEmail) {
-    if (!checkAuth() || currentUser.role !== 'client') return;
-
-    try {
-        const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
-        const clients = await response.json();
-
-        const container = document.getElementById('clientDetailsContainer');
-
-        if (!clients) {
-            container.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-state-icon"><i class="fas fa-user-slash"></i></div>
-                            <h3>No account found</h3>
-                            <p>Your account details could not be found. Please contact support.</p>
-                        </div>
-                    `;
-            return;
-        }
-
-        // Find the client by email
-        const clientEntry = Object.entries(clients).find(([id, client]) => client.email === clientEmail);
-
-        if (!clientEntry) {
-            container.innerHTML = `
-                        <div class="empty-state">
-                            <div class="empty-state-icon"><i class="fas fa-user-slash"></i></div>
-                            <h3>Account not found</h3>
-                            <p>No account found with email: ${clientEmail}</p>
-                            <p>Please contact the administrator if you believe this is an error.</p>
-                        </div>
-                    `;
-            return;
-        }
-
-        const [id, client] = clientEntry;
-
-        container.innerHTML = `
-    <div class="client-card" style="border-color: var(--info-color);">
-        <div class="client-header">
-            <div class="client-name">
-                <i class="fas fa-user-circle"></i> ${client.name}
-            </div>
-            <span class="payment-badge ${client.paymentType === 'monthly' ? 'badge-monthly' : 'badge-project'}">
-                <i class="fas ${client.paymentType === 'monthly' ? 'fa-calendar-alt' : 'fa-project-diagram'}"></i>
-                ${client.paymentType === 'monthly' ? 'Monthly Payment' : 'Project Based'}
-            </span>
-        </div>
-        <div class="client-info">
-            <div class="client-info-item">
-                <i class="fas fa-envelope"></i>
-                <div><strong>Email:</strong> ${client.email}</div>
-            </div>
-            ${client.phone ? `
-                <div class="client-info-item">
-                    <i class="fas fa-phone"></i>
-                    <div><strong>Phone:</strong> ${client.phone}</div>
-                </div>
-            ` : ''}
-            <div class="client-info-item">
-                <i class="fas fa-money-bill"></i>
-                <div><strong>Payment Amount:</strong> Rs. ${client.amount.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-            </div>
-            <div class="client-info-item">
-                <i class="fas fa-calendar-check"></i>
-                <div><strong>Last Payment Date:</strong> 
-                    ${client.lastPaymentDate ? 
-                        new Date(client.lastPaymentDate).toLocaleString('en-PK', { 
-                            year: 'numeric', 
-                            month: 'short', 
-                            day: 'numeric',
-                            hour: '2-digit',
-                            minute: '2-digit'
-                        }) : 
-                        'No payments yet'}
-                </div>
-            </div>
-            ${client.paymentType === 'monthly' ? `
-                <div class="client-info-item">
-                    <i class="fas fa-calendar-day"></i>
-                    <div><strong>Payment Reminder Day:</strong> ${client.reminderDay} of each month</div>
-                </div>
-            ` : ''}
-            ${client.notes ? `
-                <div class="client-info-item">
-                    <i class="fas fa-sticky-note"></i>
-                    <div class="client-notes">
-                        <strong>Notes:</strong>
-                        <pre class="notes-pre">${client.notes || '—'}</pre>
-                    </div>
-                </div>
-            ` : ''}
-            <div class="client-info-item">
-                <i class="fas fa-info-circle"></i>
-                <div><strong>Account Status:</strong> <span style="color: var(--success-color);">Active</span></div>
-            </div>
-            <div class="client-info-item">
-                <i class="fas fa-clock"></i>
-                <div><strong>Last Updated:</strong> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-            </div>
-        </div>
-    </div>
-`;
-    } catch (error) {
-        container.innerHTML = `
-                    <div class="alert alert-error">
-                        <i class="fas fa-exclamation-triangle"></i> Error loading your account details. Please try again later.
-                    </div>
-                `;
-    }
-}
-
-function updateStats(clients) {
-    if (!clients) {
-        document.getElementById('totalClients').textContent = '0';
-        document.getElementById('monthlyClients').textContent = '0';
-        document.getElementById('projectClients').textContent = '0';
-        document.getElementById('monthlyRevenue').textContent = 'Rs. 0';
-        return;
-    }
-
-    const clientsArray = Object.values(clients);
-    const monthlyClients = clientsArray.filter(c => c.paymentType === 'monthly');
-    const projectClients = clientsArray.filter(c => c.paymentType === 'project');
-    const monthlyRevenue = monthlyClients.reduce(
-        (sum, c) => sum + Math.min(c.amount, c.totalPaid || 0),
-        0
-    );
-
-
-    document.getElementById('totalClients').textContent = clientsArray.length;
-    document.getElementById('monthlyClients').textContent = monthlyClients.length;
-    document.getElementById('projectClients').textContent = projectClients.length;
-    document.getElementById('monthlyRevenue').textContent = `Rs. ${monthlyRevenue.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
-}
-
-async function deleteClient(id) {
-    if (!checkAuth() || currentUser.role !== 'admin') return;
-    if (!confirm('Are you sure you want to delete this client? This action cannot be undone.')) return;
-
-    try {
-        await fetch(`${CONFIG.firebase.databaseURL}/clients/${id}.json`, { method: 'DELETE' });
-        showAlert('Client deleted successfully!', 'success');
-        loadClients();
-    } catch (error) {
-        showAlert('Error deleting client', 'error');
-    }
-}
-
-async function sendManualReminder(clientId) {
-    if (!checkAuth() || currentUser.role !== 'admin') return;
-
-    try {
-        const response = await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`);
-        const client = await response.json();
-
-        await sendEmail(client, 1);
-        showAlert(`Reminder sent to ${client.name}!`, 'success');
-    } catch (error) {
-        showAlert('Error sending reminder: ' + error.message, 'error');
-    }
-}
-
-async function sendEmail(client, reminderNumber) {
-    const templateParams = {
-        to_name: client.name,
-        to_email: client.email,
-        client_name: client.name,
-        client_email: client.email,
-        amount: `Rs. ${client.amount.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
-        payment_type: client.paymentType === 'monthly' ? 'Monthly' : 'Per Project',
-        reminder_number: reminderNumber,
-        reminder_day: client.reminderDay || 'N/A',
-        client_notes: client.notes || '—'
-    };
-
-    try {
-        const response = await emailjs.send(
-            CONFIG.emailjs.serviceId,
-            CONFIG.emailjs.templateId,
-            templateParams
-        );
-        console.log(`Email sent to ${client.email} (${client.name}) - Reminder ${reminderNumber}`, response);
-    } catch (error) {
-        console.error('Email error:', error);
-        throw error;
-    }
-}
-
+// Reminder System
 async function checkReminders() {
     if (!checkAuth() || currentUser.role !== 'admin') return;
-
+    
     try {
         const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
         const clients = await response.json();
+        
         if (!clients) return;
-
+        
         const today = new Date();
         today.setHours(0, 0, 0, 0);
-
+        
         for (const [id, client] of Object.entries(clients)) {
             if (client.paymentType !== 'monthly') continue;
-
+            
             const reminderCount = client.reminderCount || 0;
             if (reminderCount >= 3) continue;
-
+            
             const baseDate = new Date(today.getFullYear(), today.getMonth(), client.reminderDay);
             const reminderDates = [
                 baseDate,
                 new Date(baseDate.getTime() + 2 * 86400000),
                 new Date(baseDate.getTime() + 4 * 86400000)
             ];
-
+            
             // Fix month overflow
             reminderDates.forEach(d => {
                 const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0).getDate();
                 if (d.getDate() > lastDay) d.setDate(lastDay);
                 d.setHours(0, 0, 0, 0);
             });
-
+            
             const todayStr = today.toISOString().split('T')[0];
             const targetDate = reminderDates[reminderCount];
             const targetStr = targetDate.toISOString().split('T')[0];
-
+            
             if (todayStr === targetStr) {
                 await sendEmail(client, reminderCount + 1);
-
+                
                 await fetch(`${CONFIG.firebase.databaseURL}/clients/${id}.json`, {
                     method: 'PATCH',
                     headers: { 'Content-Type': 'application/json' },
@@ -822,10 +860,10 @@ async function checkReminders() {
                         lastReminderSent: todayStr
                     })
                 });
-
+                
                 console.log(`Reminder ${reminderCount + 1} sent to ${client.name}`);
             }
-
+            
             // Reset after cycle
             if (today > reminderDates[2]) {
                 await fetch(`${CONFIG.firebase.databaseURL}/clients/${id}.json`, {
@@ -840,179 +878,195 @@ async function checkReminders() {
     }
 }
 
-
-function startReminderCheck() {
-    if (checkInterval) clearInterval(checkInterval);
-    checkInterval = setInterval(checkReminders, 3600000);
-    checkReminders();
+async function sendManualReminder(clientId) {
+    if (!checkAuth() || currentUser.role !== 'admin') return;
+    
+    try {
+        const response = await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`);
+        const client = await response.json();
+        
+        await sendEmail(client, 1);
+        showAlert(`Reminder sent to ${client.name}!`, 'success');
+    } catch (error) {
+        console.error('Error sending reminder:', error);
+        showAlert('Error sending reminder', 'error');
+    }
 }
 
+async function sendEmail(client, reminderNumber) {
+    const templateParams = {
+        to_name: client.name,
+        to_email: client.email,
+        client_name: client.name,
+        client_email: client.email,
+        amount: `Rs. ${client.amount.toLocaleString('en-PK')}`,
+        payment_type: client.paymentType === 'monthly' ? 'Monthly' : 'Per Project',
+        reminder_number: reminderNumber,
+        reminder_day: client.reminderDay || 'N/A',
+        client_notes: client.notes || '—'
+    };
+    
+    try {
+        await emailjs.send(
+            CONFIG.emailjs.serviceId,
+            CONFIG.emailjs.templateId,
+            templateParams
+        );
+    } catch (error) {
+        console.error('Email error:', error);
+        throw error;
+    }
+}
+
+// Alert System
 function showAlert(message, type) {
-    const container = document.getElementById('alertContainer');
     const alert = document.createElement('div');
     alert.className = `alert alert-${type}`;
-
-    const icon = type === 'success' ? 'check-circle' :
-        type === 'error' ? 'exclamation-triangle' :
-            type === 'warning' ? 'exclamation-circle' : 'info-circle';
-
-    alert.innerHTML = `<i class="fas fa-${icon}"></i> ${message}`;
-
-    container.appendChild(alert);
-
+    
+    const icons = {
+        success: 'check-circle',
+        error: 'exclamation-triangle',
+        warning: 'exclamation-circle',
+        info: 'info-circle'
+    };
+    
+    alert.innerHTML = `<i class="fas fa-${icons[type] || 'info-circle'}"></i> ${message}`;
+    
+    DOM.alertContainer.appendChild(alert);
+    
     setTimeout(() => {
         alert.remove();
     }, 5000);
 }
 
-// Handle page unload (close tab/browser)
-window.addEventListener('beforeunload', () => {
-    // Session will be cleared automatically since we use sessionStorage
-});
+function showLoginAlert(message, type) {
+    const icons = {
+        success: 'check-circle',
+        error: 'exclamation-triangle',
+        warning: 'exclamation-circle',
+        info: 'info-circle'
+    };
+    
+    DOM.loginAlert.innerHTML = `
+        <div class="alert alert-${type}">
+            <i class="fas fa-${icons[type] || 'info-circle'}"></i> ${message}
+        </div>
+    `;
+    
+    setTimeout(() => {
+        DOM.loginAlert.innerHTML = '';
+    }, 4000);
+}
 
-// Initialize app
-document.addEventListener('DOMContentLoaded', () => {
-    initAuth();
-
-    // Auto-generate credentials when email is entered in client form
-    document.getElementById('clientEmail')?.addEventListener('input', updateClientCredentials);
-});
-
-
-
-
-function getBillingCycle(reminderDay) {
-    const now = new Date();
-    let month = now.getMonth();
-    let year = now.getFullYear();
-
-    if (now.getDate() < reminderDay) {
-        month--;
-        if (month < 0) {
-            month = 11;
-            year--;
+// Activity Monitoring
+function startInactivityMonitor() {
+    lastActivityTime = Date.now();
+    
+    inactivityTimer = setInterval(() => {
+        const inactiveTime = Date.now() - lastActivityTime;
+        if (inactiveTime > 120000) { // 2 minutes
+            logout();
+            showAlert('Session expired due to inactivity', 'warning');
         }
-    }
-
-    return `${year}-${month + 1}`; // example: "2025-9"
+    }, 10000);
 }
 
-
-
-function openPaymentModal(clientId, amount) {
-    document.getElementById('paymentClientId').value = clientId;
-    document.getElementById('paymentAmount').value = amount;
-    document.getElementById('paymentModal').classList.add('active');
+function stopInactivityMonitor() {
+    if (inactivityTimer) {
+        clearInterval(inactivityTimer);
+    }
 }
 
-function closePaymentModal() {
-    document.getElementById('paymentModal').classList.remove('active');
-    document.getElementById('paymentForm').reset();
+function resetInactivityTimer() {
+    lastActivityTime = Date.now();
 }
 
-document.getElementById('paymentForm').addEventListener('submit', async (e) => {
-    e.preventDefault();
-
-    const clientId = document.getElementById('paymentClientId').value;
-    const amount = parseFloat(document.getElementById('paymentAmount').value);
-    const mode = document.getElementById('paymentMode').value;
-    const note = document.getElementById('paymentNote').value;
-
-    const clientRes = await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`);
-    const client = await clientRes.json();
-
-    let cycle = null;
-    if (client.paymentType === 'monthly') {
-        cycle = getBillingCycle(client.reminderDay);
-    }
-
-    const paymentDate = new Date().toISOString();
-    const paymentRecord = {
-        amount,
-        note,
-        date: paymentDate,
-        mode,
-        cycle
-    };
-
-    // Save payment record
-    await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}/payments.json`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(paymentRecord)
-    });
-
-    // Update client with lastPaymentDate
-    const newTotalPaid = (client.totalPaid || 0) + amount;
-    const remaining = client.amount - newTotalPaid;
-
-    const updateData = {
-        totalPaid: newTotalPaid,
-        status: remaining <= 0 ? 'paid' : 'due',
-        lastPaymentDate: paymentDate  // Use the same date
-    };
-
-    if (client.paymentType === 'monthly') {
-        updateData.lastPaidCycle = cycle;
-    }
-
-    await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`, {
-        method: 'PATCH',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(updateData)
-    });
-
-    closePaymentModal();
-    loadClients();
-    showAlert('Payment recorded successfully!', 'success');
-});
-
-
-// Add this function and call it once
-async function initializeExistingClientsLastPaymentDate() {
-    try {
-        const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
-        const clients = await response.json();
-        
-        if (!clients) return;
-        
-        for (const [clientId, client] of Object.entries(clients)) {
-            // If client has payments but no lastPaymentDate
-            if (!client.lastPaymentDate && client.totalPaid > 0) {
-                // Get payments for this client
-                const paymentsRes = await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}/payments.json`);
-                const payments = await paymentsRes.json();
-                
-                if (payments) {
-                    // Find the latest payment
-                    let latestPaymentDate = null;
-                    Object.values(payments).forEach(payment => {
-                        if (!latestPaymentDate || new Date(payment.date) > new Date(latestPaymentDate)) {
-                            latestPaymentDate = payment.date;
-                        }
-                    });
-                    
-                    if (latestPaymentDate) {
-                        // Update client with lastPaymentDate
-                        await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`, {
-                            method: 'PATCH',
-                            headers: { 'Content-Type': 'application/json' },
-                            body: JSON.stringify({
-                                lastPaymentDate: latestPaymentDate
-                            })
-                        });
-                        
-                        console.log(`Updated ${client.name} with lastPaymentDate: ${latestPaymentDate}`);
-                    }
-                }
+function handleVisibilityChange() {
+    if (document.hidden) {
+        hiddenTime = Date.now();
+    } else {
+        if (hiddenTime > 0) {
+            const timeHidden = Date.now() - hiddenTime;
+            if (timeHidden > 120000) {
+                logout();
+                showAlert('Session expired due to screen being off', 'warning');
             }
         }
-        
-        console.log('Finished initializing lastPaymentDate for existing clients');
-    } catch (error) {
-        console.error('Error initializing lastPaymentDate:', error);
     }
 }
 
-// Call this once to fix existing data
-// initializeExistingClientsLastPaymentDate();
+// Utility Functions
+function checkAuth() {
+    const session = sessionStorage.getItem('userSession');
+    if (!session) return false;
+    
+    try {
+        const sessionData = JSON.parse(session);
+        const currentTime = Date.now();
+        
+        if (currentTime - sessionData.loginTime > 24 * 60 * 60 * 1000) {
+            logout();
+            return false;
+        }
+        
+        return true;
+    } catch (error) {
+        return false;
+    }
+}
+
+function startReminderCheck() {
+    if (checkInterval) clearInterval(checkInterval);
+    checkInterval = setInterval(checkReminders, 3600000); // Check every hour
+    checkReminders(); // Run immediately
+}
+
+async function deleteClient(id) {
+    if (!checkAuth() || currentUser.role !== 'admin') return;
+    
+    if (!confirm('Are you sure you want to delete this client? This action cannot be undone.')) {
+        return;
+    }
+    
+    try {
+        await fetch(`${CONFIG.firebase.databaseURL}/clients/${id}.json`, { 
+            method: 'DELETE' 
+        });
+        
+        showAlert('Client deleted successfully!', 'success');
+        loadClients();
+    } catch (error) {
+        console.error('Error deleting client:', error);
+        showAlert('Error deleting client', 'error');
+    }
+}
+
+function createEmptyState(type) {
+    const messages = {
+        clients: {
+            icon: 'fas fa-users',
+            title: 'No clients yet',
+            message: 'Add your first client to get started'
+        },
+        account: {
+            icon: 'fas fa-user-slash',
+            title: 'Account not found',
+            message: 'Your account details could not be found. Please contact support.'
+        }
+    };
+    
+    const msg = messages[type] || messages.clients;
+    
+    return `
+        <div class="empty-state">
+            <div class="empty-state-icon"><i class="${msg.icon}"></i></div>
+            <h3>${msg.title}</h3>
+            <p>${msg.message}</p>
+        </div>
+    `;
+}
+
+// Handle page unload
+window.addEventListener('beforeunload', () => {
+    stopInactivityMonitor();
+});
