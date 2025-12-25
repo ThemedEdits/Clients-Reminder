@@ -101,8 +101,8 @@ function handleLogin(e) {
         }, 500);
     }
     else {
-    authenticateClientFromFirebase(userId, name, password);
-}
+        authenticateClientFromFirebase(userId, name, password);
+    }
 
 }
 
@@ -447,10 +447,10 @@ async function loadClients() {
         const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
         const clients = await response.json();
         for (const [id, client] of Object.entries(clients)) {
-    await resetMonthlyIfNeeded(client, id);
-}
-const refreshedResponse = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
-const refreshedClients = await refreshedResponse.json();
+            await resetMonthlyIfNeeded(client, id);
+        }
+        const refreshedResponse = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
+        const refreshedClients = await refreshedResponse.json();
 
 
         const container = document.getElementById('clientsContainer');
@@ -505,12 +505,12 @@ const refreshedClients = await refreshedResponse.json();
                             <div class="client-info-item">
                                 <i class="fas fa-money-bill"></i>
                                 ${(() => {
-    const paid = client.totalPaid || 0;
-    const remaining = client.amount - paid;
-    const cls = remaining <= 0 ? 'amount-paid' : 'amount-due';
-    const label = remaining <= 0 ? 'Received' : 'Receivable';
+                const paid = client.totalPaid || 0;
+                const remaining = client.amount - paid;
+                const cls = remaining <= 0 ? 'amount-paid' : 'amount-due';
+                const label = remaining <= 0 ? 'Received' : 'Receivable';
 
-    return `
+                return `
         <div>
             <strong>Total:</strong> Rs. ${client.amount.toLocaleString('en-PK')}
         </div>
@@ -518,9 +518,23 @@ const refreshedClients = await refreshedResponse.json();
             <strong>${label}:</strong> Rs. ${Math.max(remaining, 0).toLocaleString('en-PK')}
         </div>
     `;
-})()}
+            })()}
 
                             </div>
+                            <div class="client-info-item">
+    <i class="fas fa-calendar-check"></i>
+    <div><strong>Last Payment:</strong> 
+        ${client.lastPaymentDate ? 
+            new Date(client.lastPaymentDate).toLocaleString('en-PK', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            }) : 
+            'Not paid yet'}
+    </div>
+</div>
                             ${client.paymentType === 'monthly' ? `
                                 <div class="client-info-item">
                                     <i class="fas fa-calendar-day"></i>
@@ -611,57 +625,71 @@ async function loadClientDetails(clientEmail) {
         const [id, client] = clientEntry;
 
         container.innerHTML = `
-                    <div class="client-card" style="border-color: var(--info-color);">
-                        <div class="client-header">
-                            <div class="client-name">
-                                <i class="fas fa-user-circle"></i> ${client.name}
-                            </div>
-                            <span class="payment-badge ${client.paymentType === 'monthly' ? 'badge-monthly' : 'badge-project'}">
-                                <i class="fas ${client.paymentType === 'monthly' ? 'fa-calendar-alt' : 'fa-project-diagram'}"></i>
-                                ${client.paymentType === 'monthly' ? 'Monthly Payment' : 'Project Based'}
-                            </span>
-                        </div>
-                        <div class="client-info">
-                            <div class="client-info-item">
-                                <i class="fas fa-envelope"></i>
-                                <div><strong>Email:</strong> ${client.email}</div>
-                            </div>
-                            ${client.phone ? `
-                                <div class="client-info-item">
-                                    <i class="fas fa-phone"></i>
-                                    <div><strong>Phone:</strong> ${client.phone}</div>
-                                </div>
-                            ` : ''}
-                            <div class="client-info-item">
-                                <i class="fas fa-money-bill"></i>
-                                <div><strong>Payment Amount:</strong> Rs. ${client.amount.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
-                            </div>
-                            ${client.paymentType === 'monthly' ? `
-                                <div class="client-info-item">
-                                    <i class="fas fa-calendar-day"></i>
-                                    <div><strong>Payment Reminder Day:</strong> ${client.reminderDay} of each month</div>
-                                </div>
-                            ` : ''}
-                            ${client.notes ? `
-                                <div class="client-info-item">
-                                    <i class="fas fa-sticky-note"></i>
-                                    <div class="client-notes">
-  <strong>Notes:</strong>
-  <pre class="notes-pre">${client.notes || '—'}</pre>
-</div>
-                                </div>
-                            ` : ''}
-                            <div class="client-info-item">
-                                <i class="fas fa-info-circle"></i>
-                                <div><strong>Account Status:</strong> <span style="color: var(--success-color);">Active</span></div>
-                            </div>
-                            <div class="client-info-item">
-                                <i class="fas fa-clock"></i>
-                                <div><strong>Last Updated:</strong> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
-                            </div>
-                        </div>
+    <div class="client-card" style="border-color: var(--info-color);">
+        <div class="client-header">
+            <div class="client-name">
+                <i class="fas fa-user-circle"></i> ${client.name}
+            </div>
+            <span class="payment-badge ${client.paymentType === 'monthly' ? 'badge-monthly' : 'badge-project'}">
+                <i class="fas ${client.paymentType === 'monthly' ? 'fa-calendar-alt' : 'fa-project-diagram'}"></i>
+                ${client.paymentType === 'monthly' ? 'Monthly Payment' : 'Project Based'}
+            </span>
+        </div>
+        <div class="client-info">
+            <div class="client-info-item">
+                <i class="fas fa-envelope"></i>
+                <div><strong>Email:</strong> ${client.email}</div>
+            </div>
+            ${client.phone ? `
+                <div class="client-info-item">
+                    <i class="fas fa-phone"></i>
+                    <div><strong>Phone:</strong> ${client.phone}</div>
+                </div>
+            ` : ''}
+            <div class="client-info-item">
+                <i class="fas fa-money-bill"></i>
+                <div><strong>Payment Amount:</strong> Rs. ${client.amount.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</div>
+            </div>
+            <div class="client-info-item">
+                <i class="fas fa-calendar-check"></i>
+                <div><strong>Last Payment Date:</strong> 
+                    ${client.lastPaymentDate ? 
+                        new Date(client.lastPaymentDate).toLocaleString('en-PK', { 
+                            year: 'numeric', 
+                            month: 'short', 
+                            day: 'numeric',
+                            hour: '2-digit',
+                            minute: '2-digit'
+                        }) : 
+                        'No payments yet'}
+                </div>
+            </div>
+            ${client.paymentType === 'monthly' ? `
+                <div class="client-info-item">
+                    <i class="fas fa-calendar-day"></i>
+                    <div><strong>Payment Reminder Day:</strong> ${client.reminderDay} of each month</div>
+                </div>
+            ` : ''}
+            ${client.notes ? `
+                <div class="client-info-item">
+                    <i class="fas fa-sticky-note"></i>
+                    <div class="client-notes">
+                        <strong>Notes:</strong>
+                        <pre class="notes-pre">${client.notes || '—'}</pre>
                     </div>
-                `;
+                </div>
+            ` : ''}
+            <div class="client-info-item">
+                <i class="fas fa-info-circle"></i>
+                <div><strong>Account Status:</strong> <span style="color: var(--success-color);">Active</span></div>
+            </div>
+            <div class="client-info-item">
+                <i class="fas fa-clock"></i>
+                <div><strong>Last Updated:</strong> ${new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}</div>
+            </div>
+        </div>
+    </div>
+`;
     } catch (error) {
         container.innerHTML = `
                     <div class="alert alert-error">
@@ -684,9 +712,9 @@ function updateStats(clients) {
     const monthlyClients = clientsArray.filter(c => c.paymentType === 'monthly');
     const projectClients = clientsArray.filter(c => c.paymentType === 'project');
     const monthlyRevenue = monthlyClients.reduce(
-    (sum, c) => sum + Math.min(c.amount, c.totalPaid || 0),
-    0
-);
+        (sum, c) => sum + Math.min(c.amount, c.totalPaid || 0),
+        0
+    );
 
 
     document.getElementById('totalClients').textContent = clientsArray.length;
@@ -898,41 +926,93 @@ document.getElementById('paymentForm').addEventListener('submit', async (e) => {
         cycle = getBillingCycle(client.reminderDay);
     }
 
+    const paymentDate = new Date().toISOString();
     const paymentRecord = {
         amount,
         note,
-        date: new Date().toISOString(),
+        date: paymentDate,
         mode,
         cycle
     };
 
+    // Save payment record
     await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}/payments.json`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify(paymentRecord)
     });
 
-    // Update paid status for monthly full payment
+    // Update client with lastPaymentDate
     const newTotalPaid = (client.totalPaid || 0) + amount;
-const remaining = client.amount - newTotalPaid;
+    const remaining = client.amount - newTotalPaid;
 
-const updateData = {
-    totalPaid: newTotalPaid,
-    status: remaining <= 0 ? 'paid' : 'due'
-};
+    const updateData = {
+        totalPaid: newTotalPaid,
+        status: remaining <= 0 ? 'paid' : 'due',
+        lastPaymentDate: paymentDate  // Use the same date
+    };
 
-if (client.paymentType === 'monthly') {
-    updateData.lastPaidCycle = cycle;
-}
+    if (client.paymentType === 'monthly') {
+        updateData.lastPaidCycle = cycle;
+    }
 
-await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`, {
-    method: 'PATCH',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(updateData)
-});
-
+    await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(updateData)
+    });
 
     closePaymentModal();
     loadClients();
     showAlert('Payment recorded successfully!', 'success');
 });
+
+
+// Add this function and call it once
+async function initializeExistingClientsLastPaymentDate() {
+    try {
+        const response = await fetch(`${CONFIG.firebase.databaseURL}/clients.json`);
+        const clients = await response.json();
+        
+        if (!clients) return;
+        
+        for (const [clientId, client] of Object.entries(clients)) {
+            // If client has payments but no lastPaymentDate
+            if (!client.lastPaymentDate && client.totalPaid > 0) {
+                // Get payments for this client
+                const paymentsRes = await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}/payments.json`);
+                const payments = await paymentsRes.json();
+                
+                if (payments) {
+                    // Find the latest payment
+                    let latestPaymentDate = null;
+                    Object.values(payments).forEach(payment => {
+                        if (!latestPaymentDate || new Date(payment.date) > new Date(latestPaymentDate)) {
+                            latestPaymentDate = payment.date;
+                        }
+                    });
+                    
+                    if (latestPaymentDate) {
+                        // Update client with lastPaymentDate
+                        await fetch(`${CONFIG.firebase.databaseURL}/clients/${clientId}.json`, {
+                            method: 'PATCH',
+                            headers: { 'Content-Type': 'application/json' },
+                            body: JSON.stringify({
+                                lastPaymentDate: latestPaymentDate
+                            })
+                        });
+                        
+                        console.log(`Updated ${client.name} with lastPaymentDate: ${latestPaymentDate}`);
+                    }
+                }
+            }
+        }
+        
+        console.log('Finished initializing lastPaymentDate for existing clients');
+    } catch (error) {
+        console.error('Error initializing lastPaymentDate:', error);
+    }
+}
+
+// Call this once to fix existing data
+// initializeExistingClientsLastPaymentDate();
